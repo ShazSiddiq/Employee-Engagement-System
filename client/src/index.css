@@ -1,0 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+.scroll::-webkit-scrollbar{
+    display: none;
+}
+
+.signup-form{
+    position: relative !important;
+}
+.signup-name{
+    position: absolute;
+    top: 0px;
+    left: 22px;
+    background-color: #fff;
+}
+.signup-email{
+    position: absolute;
+    top: 0px;
+    left: 22px;
+    background-color: #fff;
+}
+.signup-password{
+    position: absolute;
+    top: 0px;
+    left: 22px;
+    background-color: #fff;
+}
+.required {
+    color: red;
+    margin-left: 4px; /* Optional: Add spacing between label text and asterisk */
+  }
+  .custom-tooltip[data-toggle="tooltip"]::after {
+    font-weight: bold;
+}
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+
+.tooltip .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* PopupInfo.css */
+.custom-toast {
+    width: 500px; /* Set your desired width */
+    margin-right: 10px;
+  }
+  
+  .custom-toast-body {
+    font-size: 16px; /* Optional: adjust font size */
+    /* margin-right: 10px; */
+  }
+.dropdown-div{
+    cursor: pointer;
+    margin-bottom: 3px; 
+    border-radius: 3px; 
+    padding: 8px;
+    }
+.dropdown-div:nth-child(odd){
+  background-color: #f2f2f2;
+}
+.dropdown-div:nth-child(even){
+  background-color: #fff;
+}
+  .dropdown-div label input{
+    margin-right: 10px;
+    background-color: #ddd;
+    cursor: pointer;
+  }
+  .dropdown-div label{
+    cursor: pointer;
+    padding-left: 5px;
+    padding-top: 2px;
+  }
+  .dropdown-div:hover{
+    background-color: #eee;
+    cursor: pointer;
+  }
+
+
+    
+    
