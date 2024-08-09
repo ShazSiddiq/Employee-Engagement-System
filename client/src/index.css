@@ -95,6 +95,19 @@
     cursor: pointer;
   }
 
+  .table-wrapper::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* For Firefox */
+  .table-wrapper {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .date-picker{
+    padding-right: 180px;
+  }
+
 
     
     

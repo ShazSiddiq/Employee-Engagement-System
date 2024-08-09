@@ -76,15 +76,16 @@ const ProjectList = () => {
     return (
         <div className="container">
             <div className='d-flex justify-content-between'>
-                <span className='mt-1 fs-5'>Create Project</span>
+                <span className='mt-1 fs-5' style={{fontWeight:"500"}}>Create Project</span>
                 <BtnPrimary onClick={() => openModal(false)}>
                     Add Project
                 </BtnPrimary>
             </div>
+            <hr className='mt-2'/>
             {/* <button onClick={() => setShowDeleted(!showDeleted)}>
                 {showDeleted ? 'Hide Deleted Projects' : 'Show Deleted Projects'}
             </button> */}
-            <table className="table table-striped mt-2 table-hover" style={{ borderRadius: "8px", overflow: "hidden" }}>
+            <table className="table table-striped mt-3 table-hover" style={{ borderRadius: "8px", overflow: "hidden" }}>
                 <thead className='table-dark text-center'>
                     <tr>
                         <th scope="col" style={{ fontWeight: "200" }}>Project</th>

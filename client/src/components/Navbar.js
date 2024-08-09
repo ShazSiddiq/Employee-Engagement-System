@@ -16,13 +16,11 @@ const Navbar = () => {
   };
 
   return (
-    <div className='bg-slate-900 text-slate-100'>
-      <div className=" navbar  container mx-auto h-20 flex items-center justify-between ">
+    <div className='bg-[#212250] text-slate-100'>
+      <div className=" navbar  container mx-auto h-20 flex items-center justify-between " style={{padding:"0 10px"}}>
         <Link to="/" className="logo text-2xl font-medium text-sky-400">
-        <img src='./image/logo.png' alt='logo'/>
-        
+        <img src='./image/mtye_logo.png' height="110px" width="110px" alt='logo'/>
         </Link>
-
         <nav className="flex gap-5">
           {!user ? (
             <div className="flex gap-5">
@@ -39,17 +37,18 @@ const Navbar = () => {
                 >
                   {localStorage.getItem('name')}
                 </Link>
-                <ul className="dropdown-menu">
+                <ul className="dropdown-menu" style={{left:"-30px"}}>
                   <li>
                     <Link className="dropdown-item text-dark" to="/change-password">
                       Change Password
                     </Link>
                   </li>
+                  <hr className='mt-2'></hr>
                   <li>
                     <button
                       onClick={handleLogout}
                       type="button"
-                      className="bg-rose-500 text-white py-1 ml-2 px-5 rounded-lg hover:bg-red-500 hover:text-black-900 duration-300 capitalize"
+                      className="bg-rose-500 text-white py-1 mt-2 ml-3 px-5 rounded-lg hover:bg-red-500 hover:text-black-900 duration-300 capitalize"
                     >
                       Logout
                     </button>

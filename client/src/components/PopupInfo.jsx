@@ -15,10 +15,10 @@ const PopupInfo = () => {
     <div className="d-flex ms-auto">
       <button
         type="button"
-        className="btn btn-secondary"
+        className=""
         onClick={showInfo}
       >
-        <img src='./image/icon.png' width="20px" alt="icon" />
+        <img src='./image/info_tab.svg' width="30px" alt="icon" />
       </button>
     </div>
   );

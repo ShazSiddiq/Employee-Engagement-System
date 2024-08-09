@@ -18,12 +18,12 @@ export default function AdminHome() {
   const fetchData = async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/userdata`);
-      console.log("tacc",response);
       const userData = response.data;
-      console.log(userData);
 
       // Filter out users with undefined usernames
-      const validUserData = userData.filter(user => user.username);
+      const validUserData = userData.filter(user => user.userid);
+      console.log(validUserData);
+      
 
       // Filter out tasks that have deleteStatus set to 1
       validUserData.forEach(user => {
@@ -31,7 +31,7 @@ export default function AdminHome() {
       });
 
       // Sort userData by username to maintain a constant order
-      const sortedUserData = validUserData.sort((a, b) => a.username.localeCompare(b.username));
+      const sortedUserData = validUserData.sort((a, b) => a.userid.localeCompare(b.userid));
       setData(sortedUserData);
 
       // Extract unique project titles and sort them
@@ -130,17 +130,18 @@ export default function AdminHome() {
   return (
     <>
       <div className='d-flex ml-2'>
-        <h2 className="mt-2 text-center fs-5 text-dark">Employee Engagement</h2>
+        <h1 className="mt-2 text-center fs-5 text-dark" style={{fontWeight:"500"}}>Employee Engagement</h1>
         <AdminPopupInfo />
         <ToastContainer />
       </div>
+      <hr className='mt-2 ml-2'/>
       {loading && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="text-white text-lg">Loading...</div>
         </div>
       )}
       <div className={`table-wrapper table-responsive scroll ml-2 ${loading ? 'opacity-50' : ''}`} style={{ height: '80vh', overflowY: 'auto' }}>
-        <table className="table-auto w-full mt-4 border-collapse text-center table-bordered table-hover" style={{ borderRadius: "8px", overflow: "hidden" }}>
+        <table className="table-auto w-full mt-4 border-collapse text-center  table-hover" style={{ borderRadius: "8px", overflow: "hidden" }}>
           <thead className="bg-gray-800 text-white sticky top-0">
             <tr>
               <th className="sticky left-0 bg-gray-800 px-4 py-2 z-10" style={{ minWidth: '100px', fontWeight: "200" }}>Sr.No</th>

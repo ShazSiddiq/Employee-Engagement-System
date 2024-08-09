@@ -84,6 +84,7 @@ export default function Dashboard({ showAdminHome = true }) {
               key="admin-home"
               onClick={() => handleTabClick("admin-home")}
               className={`cursor-pointer p-2 rounded-md ${activeTab === "admin-home" ? "bg-slate-900 text-white" : "hover:bg-gray-100"}`}
+              style={{ fontSize: "14px" }}
             >
               <ListItemPrefix>
                 <HomeIcon className="h-5 w-5 mr-1" />
@@ -96,6 +97,7 @@ export default function Dashboard({ showAdminHome = true }) {
             key="time-extension"
             onClick={() => handleTabClick("time-extension")}
             className={`cursor-pointer p-2 rounded-md ${activeTab === "time-extension" ? "bg-slate-900 text-white" : "hover:bg-gray-100"}`}
+            style={{ fontSize: "14px" }}
           >
             <ListItemPrefix>
               <ClockIcon className="h-5 w-5 mr-1" />
@@ -117,6 +119,7 @@ export default function Dashboard({ showAdminHome = true }) {
             key="projects"
             onClick={() => handleTabClick("projects")}
             className={`cursor-pointer p-2 rounded-md ${activeTab === "projects" ? "bg-slate-900 text-white" : "hover:bg-gray-100"}`}
+            style={{ fontSize: "14px" }}
           >
             <ListItemPrefix>
               <FolderIcon className="h-5 w-5 mr-1" />
@@ -127,7 +130,8 @@ export default function Dashboard({ showAdminHome = true }) {
           <ListItem
             key="userlist"
             onClick={() => handleTabClick("userlist")}
-            className={`cursor-pointer p-2 rounded-md ${activeTab === "userlist" ? "bg-slate-900 text-white" : "hover:bg-gray-100"}`}
+            className={`cursor-pointer text-[14px] p-2 rounded-md ${activeTab === "userlist" ? "bg-slate-900 text-white" : "hover:bg-gray-100"}`}
+            
           >
             <ListItemPrefix>
               <UsersIcon className="h-5 w-5 mr-1" />

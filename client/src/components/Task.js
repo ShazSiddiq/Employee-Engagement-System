@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import 'react-tooltip/dist/react-tooltip.css';
 import BtnPrimary from './BtnPrimary';
 import DropdownMenu from './DropdownMenu';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import RemarkModal from './RemarkModal';
 import AddTaskModal from './AddTaskModal';
 import TaskModal from './TaskModal';
@@ -14,7 +14,7 @@ import ConfirmationModal from './ConfirmationModal';
 import RequestExtensionModal from './RequestExtensionModal';
 import PopupInfo from './PopupInfo';
 import { ToastContainer } from 'react-toastify';
-import { Cog6ToothIcon } from '@heroicons/react/24/solid';
+import {  MagnifyingGlassIcon } from '@heroicons/react/24/solid';
 import ProjectModal from '../Admin/ProjectModel';
 
 
@@ -37,10 +37,10 @@ function Task() {
     const [taskToMove, setTaskToMove] = useState(null);
     const [isExtensionModalOpen, setExtensionModalOpen] = useState(false);
     const [expiredTaskId, setExpiredTaskId] = useState(null);
-    const [tasksWithGrantedExtensions, setTasksWithGrantedExtensions] = useState(new Set());
     const [isRenderChange, setRenderChange] = useState(false);
     const [currentProjectId, setCurrentProjectId] = useState(null);
     const [isProjectOpen, setProjectOpen] = useState(false);
+    const location = useLocation();
 
 
 
@@ -58,7 +58,7 @@ function Task() {
     //       timeoutId = setTimeout(pollData, POLLING_INTERVAL);
     //     };
     //     pollData(); // Start polling
-    
+
     //     return () => clearTimeout(timeoutId); // Cleanup timeout on unmount
     //   }, []);
 
@@ -270,10 +270,6 @@ function Task() {
         updateTodo(data);
     };
 
-
-
-
-
     const handleConfirmMoveToDone = () => {
         const { task, source, destination } = taskToMove;
         const sourceColumn = columns[source.droppableId];
@@ -312,7 +308,7 @@ function Task() {
     }
 
     const handleRequestExtension = (extensionRequest) => {
-        axios.put(`http://localhost:9000/project/${projectId}/extensionRequest/${expiredTaskId}`, { extensionRequest })
+        axios.put(`${process.env.REACT_APP_BASE_URL}/project/${projectId}/extensionRequest/${expiredTaskId}`, { extensionRequest })
             .then((res) => {
                 setExtensionModalOpen(false);
                 toast.success('Extension request sent');
@@ -327,42 +323,57 @@ function Task() {
         setCurrentProjectId(projectId);
         setProjectOpen(true);
     };
+    const isHomePage = location.pathname === '/';
 
     return (
-        <div className="px-12 py-6 w-full">
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-xl text-gray-800 fw-bold flex justify-start items-center space-x-2.5">
-                    <span>
-                        {title.slice(0, 35)}
-                        {title.length > 35 && '...'}
-                    </span>
-                    <Cog6ToothIcon
-                        onClick={() => handleProjectDetails(projectId)}
-                        className="h-5 w-5 cursor-pointer"
-                    />
-                </h1>
+        <div className="px-12 py-4 w-full">
+            <div className="items-center justify-between mb-3">
+                <div className='flex items-center justify-between'>
+                    <div className='d-flex'>
+                        {!isHomePage && (
+                            <button
+                                onClick={() => navigate(-1)}
+                                className='bg-indigo-200 rounded-full p-[3px] mr-2 focus:outline-none focus:ring focus:ring-indigo-200 focus:ring-offset-1'
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-indigo-600">
+                                    <path fillRule="evenodd" d="M15.293 6.293a1 1 0 010 1.414L10.414 12l4.879 4.879a1 1 0 01-1.414 1.414l-6.293-6.293a1 1 0 010-1.414l6.293-6.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                            </button>
+                        )}
+                        <h1 className="text-xl text-gray-800 fw-bold flex justify-start items-center space-x-2.5">
+                            <span>
+                                {title.slice(0, 35)}
+                                {title.length > 35 && '...'}
+                            </span>
+                            <img onClick={() => handleProjectDetails(projectId)} src='./image/file-circle-info.svg' width="20px" alt="icon" className='cursor-pointer' title='View Project details' />
+                        </h1>
+                    </div>
+                    <BtnPrimary onClick={() => setAddTaskModal(true)}>Add Task</BtnPrimary>
 
-                <PopupInfo></PopupInfo>
-                <ToastContainer />
-                <form className="ml-2 mr-2" role="search">
-                    <input className="form-control me-2 text-dark" type="search" placeholder="Search" aria-label="Search" />
+
+                </div>
+                <form className="flex mt-2 relative" role="search">
+                <MagnifyingGlassIcon className="h-6 w-6 mt-1 text-gray-500 absolute " style={{right:"46px" ,top:"2px"}} />
+                    <input  className="form-control me-2 text-dark" type="search" placeholder="Search" aria-label="Search"  />
+                    <PopupInfo></PopupInfo>
+                    <ToastContainer />
                 </form>
-                <BtnPrimary onClick={() => setAddTaskModal(true)}>Add Task</BtnPrimary>
-
             </div>
             <hr className='mb-4'></hr>
 
             {Object.keys(columns).length === 0 ? (
                 <div className="flex flex-col items-center justify-center mt-10">
                     <img src="./image/welcome.svg" className="w-5/12" alt="" />
-                    <h1 className="text-lg text-gray-600">No Task Available.
+                    <h1 className="text-lg text-gray-600 text-center">No task available.
                         <br></br>
-                        Plz Create Your Task here</h1>
+                        Please create your task here</h1>
                 </div>
             ) : (
                 <DragDropContext onDragEnd={onDragEnd}>
                     <div className="flex gap-5">
                         {Object.entries(columns).map(([columnId, column], index) => {
+                            console.log("columns:", columns, "coloumn id", columnId, "coloumn:", column, index);
+
                             return (
                                 <div className="w-3/12 h-[580px]" key={columnId} >
                                     <div className="pb-2.5 w-full flex justify-between">
@@ -387,10 +398,14 @@ function Task() {
                                                             }`}
                                                     >
                                                         {column.items.map((item, index) => {
+                                                            console.log("itm:", item,);
+
+
                                                             const { expired, timeString } = calculateRemainingTime(item.dateTime);
                                                             return (
                                                                 <Draggable key={item._id} draggableId={item._id} index={index}>
                                                                     {(provided, snapshot) => {
+
                                                                         return (
                                                                             <div
                                                                                 ref={provided.innerRef}
@@ -416,8 +431,8 @@ function Task() {
                                                                                         />
                                                                                     </div>
                                                                                     <p className="text-[#718096] text-xs mb-3 capitalize">
-                                                                                        {item.description.slice(0, 25)}
-                                                                                        {item.description.length > 25 && '...'}
+                                                                                        {item.description.slice(0, 22)}
+                                                                                        {item.description.length > 22 && '...'}
                                                                                     </p>
                                                                                     <p className="text-[#718096] text-xs mb-2 mt-4">
                                                                                         Remaining Time:

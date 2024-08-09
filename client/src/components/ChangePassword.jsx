@@ -1,45 +1,53 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { useAuthContext } from '../hooks/useAuthContext'; // Import useAuthContext
+import { useAuthContext } from '../hooks/useAuthContext';
+import { toast } from 'react-hot-toast';
 import Dashboard from '../Admin/Dashboard';
 
 const ChangePassword = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuthContext(); // Get user role from auth context
+  const { user } = useAuthContext();
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
     try {
-      setError(null);
-
       if (!currentPassword || !newPassword || !confirmPassword) {
-        throw new Error("All fields are required");
+        toast.error("All fields are required");
+        return;
       }
 
       if (newPassword !== confirmPassword) {
-        throw new Error("Passwords don't match");
+        toast.error("Passwords don't match");
+        return;
+      }
+
+      // Additional validation for password complexity (if needed)
+      const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
+      if (!passwordRegex.test(newPassword)) {
+        toast.error("Password must be at least 8 characters long and contain both letters and numbers");
+        return;
       }
 
       // Make API call to change password
-      const response = await axios.post(`${process.env.REACT_APP_BASE_URL}/api/user/change-password`, {
+      await axios.post(`${process.env.REACT_APP_BASE_URL}/api/user/change-password`, {
         email: localStorage.getItem('email'), // Example: Fetch email from local storage or state
-        currentPassword, // Include current password for verification (if needed)
+        currentPassword,
         newPassword,
       });
 
       setSuccess(true);
+      toast.success("Password changed successfully!");
       setTimeout(() => {
         navigate("/dashboard"); // Redirect to /dashboard after success
       }, 2000);
       
     } catch (error) {
-      setError(error.response?.data?.error || error.message);
+      toast.error(error.response?.data?.error || error.message);
     }
   };
 
@@ -49,11 +57,6 @@ const ChangePassword = () => {
       <div className="center">
         <h1 className='fw-bold'>Change Password</h1>
         <form onSubmit={handleChangePassword}>
-          {error && (
-            <p className="error-message">
-              {error}
-            </p>
-          )}
           {success && (
             <p className="success-message">
               Password changed successfully!
@@ -62,7 +65,7 @@ const ChangePassword = () => {
           <div className="txt_field">
             <input
               type="password"
-              required
+              // required
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
             />
@@ -72,7 +75,7 @@ const ChangePassword = () => {
           <div className="txt_field">
             <input
               type="password"
-              required
+              // required
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
@@ -82,7 +85,7 @@ const ChangePassword = () => {
           <div className="txt_field">
             <input
               type="password"
-              required
+              // required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />

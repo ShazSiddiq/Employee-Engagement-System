@@ -10,6 +10,10 @@ const AddProjectModal = ({ isModalOpen, closeModal, edit = false, id = null }) =
     const [date, setDate] = useState('');
     const [time, setTime] = useState('');
     const [currentDate, setCurrentDate] = useState('');
+    const [titleError, setTitleError] = useState('');
+    const [descError, setDescError] = useState('');
+    const [dateError, setDateError] = useState('');
+    const [timeError, setTimeError] = useState('');
 
     useEffect(() => {
         if (edit && isModalOpen) {
@@ -32,16 +36,55 @@ const AddProjectModal = ({ isModalOpen, closeModal, edit = false, id = null }) =
         setCurrentDate(new Date().toISOString().split('T')[0]);
     }, [edit, id, isModalOpen]);
 
+    const handleInputChange = (setter, errorSetter, minLength, maxLength) => (e) => {
+        const value = e.target.value;
+        setter(value);
+        if (value.length < minLength) {
+            errorSetter(`Minimum length is ${minLength} characters.`);
+        } else if (value.length > maxLength) {
+            errorSetter(`Maximum length is ${maxLength} characters.`);
+        } else {
+            errorSetter('');
+        }
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Combine date and time
-        const dateTime = `${date}T${time}:00Z`;
+        // Clear previous errors
+        setTitleError('');
+        setDescError('');
+        setDateError('');
+        setTimeError('');
 
-        if (date <= currentDate) {
-            toast.error('All the Input fields are Required.');
+        // Validate inputs
+        if (!title.trim()) {
+            setTitleError('Title is required.');
             return;
         }
-        const data = { title, description: desc ,dateTime};
+        if (title.length < 3 || title.length > 70) {
+            setTitleError('Title must be between 3 and 70 characters.');
+            return;
+        }
+        if (!date.trim()) {
+            setDateError('Date is required.');
+            return;
+        }
+        if (!time.trim()) {
+            setTimeError('Time is required.');
+            return;
+        }
+        if (!desc.trim()) {
+            setDescError('Description is required.');
+            return;
+        }
+        if (desc.length < 10 || desc.length > 500) {
+            setDescError('Description must be between 10 and 500 characters.');
+            return;
+        }
+
+        // Combine date and time
+        const dateTime = `${date}T${time}:00Z`;
+        const data = { title, description: desc, dateTime };
 
         const request = edit
             ? axios.put(`${process.env.REACT_APP_BASE_URL}/project/${id}`, data)
@@ -55,6 +98,8 @@ const AddProjectModal = ({ isModalOpen, closeModal, edit = false, id = null }) =
                 toast.success(`Project ${edit ? 'updated' : 'created'} successfully`);
                 setTitle('');
                 setDesc('');
+                setDate('');
+                setTime('');
             })
             .catch((error) => {
                 if (error.response && error.response.status === 422) {
@@ -109,34 +154,54 @@ const AddProjectModal = ({ isModalOpen, closeModal, edit = false, id = null }) =
                                         <label htmlFor="title" className="block text-gray-600">Title</label>
                                         <input
                                             value={title}
-                                            onChange={(e) => setTitle(e.target.value)}
+                                            onChange={handleInputChange(setTitle, setTitleError, 3, 70)}
                                             type="text"
                                             id="title"
-                                            className="border border-gray-300 rounded-md w-full text-sm py-2 px-2.5 focus:border-indigo-500 focus:outline-offset-1 focus:outline-indigo-400"
+                                            className={`border ${titleError ? 'border-red-500' : 'border-gray-300'} rounded-md w-full text-sm py-2 px-2.5 focus:border-indigo-500 focus:outline-offset-1 focus:outline-indigo-400`}
                                             placeholder="Project title"
                                         />
+                                        {titleError && <p className="text-red-500 text-sm">{titleError}</p>}
                                     </div>
                                     <div className='mb-3'>
                                         <label htmlFor="date" className='block text-gray-600'>Date for completion <span className="required">*</span></label>
-                                        <input value={date} onChange={(e) => setDate(e.target.value)} type="date" min={currentDate} className='border border-gray-300 rounded-md w-full text-sm py-2 px-2.5 focus:border-indigo-500 focus:outline-offset-1 focus:outline-indigo-400' />
+                                        <input
+                                            value={date}
+                                            onChange={handleInputChange(setDate, setDateError, 0, Infinity)}
+                                            type="date"
+                                            min={currentDate}
+                                            className={`border ${dateError ? 'border-red-500' : 'border-gray-300'} rounded-md w-full text-sm py-2 px-2.5 focus:border-indigo-500 focus:outline-offset-1 focus:outline-indigo-400`}
+                                        />
+                                        {dateError && <p className="text-red-500 text-sm">{dateError}</p>}
                                     </div>
                                     <div className='mb-3'>
                                         <label htmlFor="time" className='block text-gray-600'>Time for completion <span className="required">*</span></label>
-                                        <input value={time} onChange={(e) => setTime(e.target.value)} type="time" className='border border-gray-300 rounded-md w-full text-sm py-2 px-2.5 focus:border-indigo-500 focus:outline-offset-1 focus:outline-indigo-400' />
+                                        <input
+                                            value={time}
+                                            onChange={handleInputChange(setTime, setTimeError, 0, Infinity)}
+                                            type="time"
+                                            className={`border ${timeError ? 'border-red-500' : 'border-gray-300'} rounded-md w-full text-sm py-2 px-2.5 focus:border-indigo-500 focus:outline-offset-1 focus:outline-indigo-400`}
+                                        />
+                                        {timeError && <p className="text-red-500 text-sm">{timeError}</p>}
                                     </div>
                                     <div className="mb-2">
                                         <label htmlFor="description" className="block text-gray-600">Description</label>
                                         <textarea
                                             value={desc}
-                                            onChange={(e) => setDesc(e.target.value)}
+                                            onChange={handleInputChange(setDesc, setDescError, 10, 500)}
                                             id="description"
-                                            className="border border-gray-300 rounded-md w-full text-sm py-2 px-2.5 focus:border-indigo-500 focus:outline-offset-1 focus:outline-indigo-400"
+                                            className={`border ${descError ? 'border-red-500' : 'border-gray-300'} rounded-md w-full text-sm py-2 px-2.5 focus:border-indigo-500 focus:outline-offset-1 focus:outline-indigo-400`}
                                             rows="6"
                                             placeholder="Project description"
                                         ></textarea>
+                                        {descError && <p className="text-red-500 text-sm">{descError}</p>}
                                     </div>
                                     <div className="flex justify-end items-center space-x-2">
-                                        <button className='inline-flex justify-center px-4 py-2 text-sm font-medium text-slate-100 bg-red-500 border border-transparent rounded-md hover:bg-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-600' onClick={closeModal}>Cancel</button>
+                                        <button
+                                            className='inline-flex justify-center px-4 py-2 text-sm font-medium text-slate-100 bg-red-500 border border-transparent rounded-md hover:bg-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-600'
+                                            onClick={closeModal}
+                                        >
+                                            Cancel
+                                        </button>
                                         <BtnPrimary>Save</BtnPrimary>
                                     </div>
                                 </form>

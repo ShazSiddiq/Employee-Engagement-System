@@ -19,6 +19,7 @@
     "react": "^18.2.0",
     "react-beautiful-dnd": "^13.1.1",
     "react-bootstrap": "^2.10.4",
+    "react-datepicker": "^7.3.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.4.0",
     "react-modal": "^3.16.1",

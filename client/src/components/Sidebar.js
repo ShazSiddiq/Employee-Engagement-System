@@ -8,7 +8,7 @@ const Sidebar = () => {
   const [projects, setProjects] = useState([]);
   const [paramsWindow, setParamsWindow] = useState(window.location.pathname.slice(1));
   const navigate = useNavigate();
-  const location = useLocation();
+  // const location = useLocation();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -60,21 +60,11 @@ const Sidebar = () => {
     };
   }, []);
 
-  const isHomePage = location.pathname === '/';
+
 
   return (
-    <div style={{ paddingTop: "2rem", paddingBottom: "3rem" }}>
-      {!isHomePage && (
-        <button
-          onClick={() => navigate(-1)}
-          className='bg-indigo-200 rounded-full p-[2px] mb-3 focus:outline-none focus:ring focus:ring-indigo-200 focus:ring-offset-1'
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-indigo-600">
-            <path fillRule="evenodd" d="M15.293 6.293a1 1 0 010 1.414L10.414 12l4.879 4.879a1 1 0 01-1.414 1.414l-6.293-6.293a1 1 0 010-1.414l6.293-6.293a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
-        </button>
-      )}
-      <div className="px-4 mb-3 flex items-center justify-between font-bold text-xl text-dark " style={{ borderTop: "1px solid #ddd", paddingTop: "1.5rem", marginTop: "14px" }}>
+    <div >
+      <div className="px-4 mb-3 flex items-center justify-between font-bold text-xl text-dark mt-4 " >
         <span>My Projects</span>
       </div>
       <ul className='border-r border-gray-400 pr-2'>

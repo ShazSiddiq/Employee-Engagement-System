@@ -159,8 +159,9 @@ export default function UserList() {
 
   return (
     <div className='ml-3'>
-      <h2 className='mb-3 fs-5'>Employee List</h2>
-      <table className='table table-bordered table-striped table-responsive table-hover' style={{ borderRadius: "8px", overflow: "hidden" }}>
+      <h2 className='mb-3 fs-5' style={{fontWeight:"500"}}>Employee List</h2>
+      <hr className='mt-2'/>
+      <table className='table table-striped table-responsive table-hover mt-3' style={{ borderRadius: "8px", overflow: "hidden" }}>
         <thead className='table-dark'>
           <tr>
             <th style={{ fontWeight: "200" }}>Employee Name</th>

@@ -1,3 +1,5 @@
+
+
 import express from "express";
 import dotenv from 'dotenv';
 import mongoose from "mongoose";
@@ -16,8 +18,8 @@ mongoose.connect(process.env.MONGODB_PATH, () => {
     console.log('Connected to MongoDB');
 }, (e) => console.log(e));
 
-const PORT = process.env.SERVER_PORT || 9000;
-const origin = process.env.CORS_ORIGIN || 'http://localhost:3000';
+const PORT = process.env.SERVER_PORT || 2000;
+const origin = process.env.CORS_ORIGIN || "*";
 
 const app = express();
 
@@ -43,9 +45,9 @@ app.use(express.urlencoded({ extended: true }));
 // CORS configuration
 app.use(cors({
     origin: origin, // Allow only specific origin
-    credentials: true, // Allow cookies to be sent and received
-    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allow specific methods
-    allowedHeaders: ['Content-Type', 'Authorization'], // Allow specific headers
+    // credentials: true, // Allow cookies to be sent and received
+    // methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allow specific methods
+    // allowedHeaders: ['Content-Type', 'Authorization'], // Allow specific headers
 }));
 
 // Routes

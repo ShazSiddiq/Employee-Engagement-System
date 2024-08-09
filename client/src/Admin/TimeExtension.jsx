@@ -67,7 +67,7 @@ export default function TimeExtension({ setExtensionRequestCount }) {
       return;
     }
 
-    console.log('Selected task:', task);
+    // console.log('Selected task:', task);
     setSelectedTask(task);
     setShowModal(true);
   };
@@ -130,22 +130,23 @@ export default function TimeExtension({ setExtensionRequestCount }) {
 
   return (
     <div>
-      <h1 className="mt-2 ml-2 mb-3 fs-5 text-dark">Time Extension Requests</h1>
+      <h1 className="mt-2 ml-2 mb-3 fs-5 text-dark" style={{fontWeight:"500"}}>Time Extension Requests</h1>
+      <hr className='mt-2 ml-2'/>
       {sortedUsers.length === 0 ? (
         <div style={{ display: "flex", justifyContent: "center", height: "70vh" }}>
           <img src="./image/no_time_request.png" alt="No Time Requests" />
         </div>
       ) : (
         <div className="table-wrapper table-responsive scroll ml-2" style={{ height: '80vh', overflowY: 'auto' }}>
-          <table className='table table-striped table-auto w-full mt-3 border-collapse text-center table-bordered  table-hover' style={{ borderRadius: "8px", overflow: "hidden" }}>
+          <table className='table table-striped table-auto w-full mt-3 border-collapse text-center  table-hover' style={{ borderRadius: "8px", overflow: "hidden" }}>
             <thead className='table-dark text-center'>
               <tr>
-                <th className="sticky left-0 bg-gray-800 px-4 py-2 z-10" style={{ minWidth: '200px', fontWeight: "200" }}>User Name</th>
-                <th className="bg-gray-800 px-4 py-2 z-10" style={{ minWidth: '200px', fontWeight: "200" }}>User Email</th>
-                <th style={{ minWidth: '230px', fontWeight: "200" }}>Project Title</th>
-                <th style={{ minWidth: '150px', fontWeight: "200" }}>Task Title</th>
-                <th style={{ minWidth: '300px', fontWeight: "200" }}>Time Extension Request</th>
-                <th style={{ minWidth: '190px', fontWeight: "200" }}>Requested At</th>
+                <th className="sticky left-0 bg-gray-800 px-4 py-2 z-10" style={{ minWidth: '200px', fontWeight: "600" }}>User Name</th>
+                <th className="bg-gray-800 px-4 py-2 z-10" style={{ minWidth: '200px', fontWeight: "600" }}>User Email</th>
+                <th style={{ minWidth: '230px', fontWeight: "600" }}>Project Title</th>
+                <th style={{ minWidth: '150px', fontWeight: "600" }}>Task Title</th>
+                <th style={{ minWidth: '300px', fontWeight: "600" }}>Time Extension Request</th>
+                <th style={{ minWidth: '190px', fontWeight: "600" }}>Requested At</th>
                 <th style={{ fontWeight: "200" }}>Action</th>
               </tr>
             </thead>

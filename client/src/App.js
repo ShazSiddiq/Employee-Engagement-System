@@ -11,12 +11,8 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import ChangePassword from "./components/ChangePassword";
 import Dashboard from "./Admin/Dashboard";
 import ProtectedRoute from "./context/ProtectedRoute"; // Import ProtectedRoute
-import AdminHome from "./Admin/AdminHome";
-import TimeExtension from "./Admin/TimeExtension";
-import ProjectList from "./Admin/ProjectList";
-import UserList from "./Admin/UserList";
 
-// import Footer from "./components/Footer";
+import Footer from "./components/Footer";
 
 function App() {
   const { user } = useAuthContext();
@@ -51,11 +47,11 @@ function App() {
                 <Dashboard />
               </ProtectedRoute>
             } />
-            <Route index element={<AdminHome />} />
+            {/* <Route index element={<AdminHome />} />
               <Route path="admin-home" element={<AdminHome />} />
               <Route path="time-extension" element={<TimeExtension />} />
               <Route path="projects" element={<ProjectList />} /> {/* Add this route */}
-              <Route path="userlist" element={<UserList />} />
+              {/* <Route path="userlist" element={<UserList />} /> */} 
           </Routes>
         )}
         {/* <Footer/> */}

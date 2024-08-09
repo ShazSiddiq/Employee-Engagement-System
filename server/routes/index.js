@@ -380,15 +380,15 @@ api.delete('/project/:id', async (req, res) => {
 //  task api   
 // Define Joi validation schema
 const taskSchema = Joi.object({
-    title: Joi.string().trim().min(3).max(30).required().messages({
+    title: Joi.string().trim().min(3).max(50).required().messages({
         'string.empty': 'Title cannot be empty',
         'string.min': 'Title must be at least 3 characters long',
         'string.max': 'Title cannot be longer than 30 characters',
         'any.required': 'Title is required'
     }),
-    description: Joi.string().trim().min(1).max(500).required().messages({
+    description: Joi.string().trim().min(3).max(300).required().messages({
         'string.empty': 'Description cannot be empty',
-        'string.min': 'Description must be at least 1 character long',
+        'string.min': 'Description must be at least 3 character long',
         'string.max': 'Description cannot be longer than 500 characters',
         'any.required': 'Description is required'
     }),
@@ -701,11 +701,13 @@ api.put('/project/:id/task/:taskId', async (req, res) => {
 
     const task = Joi.object({
         title: Joi.string().min(3).max(30).required(),
-        description: Joi.string().required(),
+        description: Joi.string().trim().min(3).max(500).required(),
         dateTime:Joi.string().optional(),
     })
 
     const { error, value } = task.validate({ title: req.body.title, description: req.body.description });
+    // console.log(error);
+    
     if (error) return res.status(422).send(error)
 
     try {

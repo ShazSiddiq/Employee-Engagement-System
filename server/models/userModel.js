@@ -11,9 +11,18 @@ const signupSchema = Joi.object({
     .required()
     .messages({
       'string.pattern.base': 'Name must contain at least one non-space character and cannot be only numbers.',
+      'string.min': 'Name must be at least 3 characters long.',
+      'string.max': 'Name cannot be more than 50 characters long.',
     }),
-  email: Joi.string().email().required(),
-  password: Joi.string().min(6).required(),
+  email: Joi.string().email().required().messages({
+    'string.email': 'Email must be a valid email.',
+  }),
+  password: Joi.string().min(6).max(20).required().messages({
+    'string.min': 'Password must be at least 6 characters long.',
+    'string.max': 'Password cannot be more than 20 characters long.',
+    'string.empty': 'Password cannot be empty',
+    'any.required': 'Password is required',
+  }),
   profileImage: Joi.required(),
 });
 
@@ -28,6 +37,9 @@ const changePasswordSchema = Joi.object({
 });
 
 const deactivateUserSchema = Joi.object({
+  userId: Joi.string().hex().length(24).required(),
+});
+const activateUserSchema = Joi.object({
   userId: Joi.string().hex().length(24).required(),
 });
 
@@ -94,7 +106,7 @@ userSchema.statics.login = async function (email, password) {
   const user = await this.findOne({ email });
 
   if (!user) {
-    throw new Error('Please enter your valid email');
+    throw new Error("This email does not exist. Please enter a valid email.");
   }
 
   if (user.isDeactivated) {
