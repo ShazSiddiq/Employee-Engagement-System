@@ -117,7 +117,8 @@ function Task() {
         axios
             .put(`${process.env.REACT_APP_BASE_URL}/project/${projectId}/todo`, data)
             .then((res) => {
-                // toast.success('Task updated successfully');
+                
+                toast.success('Task updated successfully');
             })
             .catch((error) => {
                 toast.error('Something went wrong');
@@ -125,7 +126,7 @@ function Task() {
     };
 
     const handleDelete = (e, taskId) => {
-        e.stopPropagation();
+        // e.stopPropagation();
         axios
             .delete(`${process.env.REACT_APP_BASE_URL}/project/${projectId}/task/${taskId}`)
             .then((res) => {
@@ -157,7 +158,6 @@ function Task() {
     const saveRemarkAndMoveTask = async (remark, taskId) => {
         axios.put(`${process.env.REACT_APP_BASE_URL}/project/${projectId}/remark/${taskId}`, { remark })
             .then((res) => {
-                console.log('API Response:', res.data); // Log API response
                 setShowRemarkModal(false);
                 toast.success('Task is updated');
                 setRemark('');
@@ -342,8 +342,8 @@ function Task() {
                         )}
                         <h1 className="text-xl text-gray-800 fw-bold flex justify-start items-center space-x-2.5">
                             <span>
-                                {title.slice(0, 35)}
-                                {title.length > 35 && '...'}
+                                {title.slice(0, 55)}
+                                {title.length > 55 && '...'}
                             </span>
                             <img onClick={() => handleProjectDetails(projectId)} src='./image/file-circle-info.svg' width="20px" alt="icon" className='cursor-pointer' title='View Project details' />
                         </h1>
@@ -370,9 +370,8 @@ function Task() {
                 </div>
             ) : (
                 <DragDropContext onDragEnd={onDragEnd}>
-                    <div className="flex gap-5">
+                    <div className="flex gap-5 scroll" style={{maxHeight:"60vh", overflow:"auto"}}>
                         {Object.entries(columns).map(([columnId, column], index) => {
-                            console.log("columns:", columns, "coloumn id", columnId, "coloumn:", column, index);
 
                             return (
                                 <div className="w-3/12 h-[580px]" key={columnId} >
@@ -398,9 +397,6 @@ function Task() {
                                                             }`}
                                                     >
                                                         {column.items.map((item, index) => {
-                                                            console.log("itm:", item,);
-
-
                                                             const { expired, timeString } = calculateRemainingTime(item.dateTime);
                                                             return (
                                                                 <Draggable key={item._id} draggableId={item._id} index={index}>
@@ -440,7 +436,7 @@ function Task() {
                                                                                         {!['Done', 'Archive'].includes(item.stage) ? (
                                                                                             <span className="text-danger">{timeString}</span>
                                                                                         ) : (
-                                                                                            <span className="text-[#718096]">Task Completed</span>
+                                                                                            <span className="text-green-600">Task Completed</span>
                                                                                         )}
                                                                                     </p>
                                                                                     {expired && !['Done', 'Archive'].includes(item.stage) && (

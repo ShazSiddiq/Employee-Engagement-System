@@ -6,8 +6,8 @@ const AppLayout = ({ children }) => {
     return (
         <div className='bg-white'>
             
-            <div className='flex container mx-auto' style={{ height: 'calc(100vh - 56px)' }}>
-                <div className="w-[220px]">
+            <div className='flex container mx-auto' style={{ height: 'calc(100vh - 56px)',paddingTop:"80px" }}>
+                <div className="w-[230px]">
                     <Sidebar />
                 </div>
                 <div className="flex-1">

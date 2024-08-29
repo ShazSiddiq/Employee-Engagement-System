@@ -7,8 +7,55 @@ import ExtensionLog from '../models/ExtensionLog.js';
 const { ObjectId } = mongoose.Types;
 import User from '../models/userModel.js';
 import RemarkLog from '../models/remarkLog.js';
+import WorkingHours from "../models/workingHours.js"
+
 
 const api = express.Router()
+
+api.get("/workingHour",async(req,res)=>{
+    try {
+        const workingHours = await WorkingHours.find();
+        res.send(workingHours)
+    } catch (error) {
+        console.log(error);
+        
+    }
+})
+
+
+// Route to get working hours for a specific date
+api.get('/api/working-hours-by-date', async (req, res) => {
+    const dateString = req.query.date;
+  
+    // Validate date
+    if (!dateString || isNaN(Date.parse(dateString))) {
+      return res.status(400).json({ message: 'Invalid date format' });
+    }
+  
+    const date = new Date(dateString);
+    const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+  
+    try {
+      // Fetch the document containing the working hours
+      const workingHoursDoc = await WorkingHours.findOne();
+  
+      if (!workingHoursDoc || !workingHoursDoc.workingHoursData) {
+        return res.status(404).json({ message: 'Working hours data not found' });
+      }
+  
+      // Find the working hours for the specific day
+      const workingHours = workingHoursDoc.workingHoursData.find(day => day.day === dayName);
+  
+      if (workingHours) {
+        res.json(workingHours);
+      } else {
+        res.status(404).json({ message: `No working hours found for ${dayName}` });
+      }
+    } catch (error) {
+      console.error('Error fetching working hours:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
 
 api.post("/search", async (req, res) => {
     try {
@@ -31,7 +78,6 @@ api.post("/search", async (req, res) => {
 
         res.send({ result: "Done", data: data });
     } catch (error) {
-        console.error('Search API failed:', error);
         res.status(500).send({ result: "Fail", message: "Internal server Error" });
     }
 });
@@ -41,6 +87,11 @@ api.post("/search", async (req, res) => {
 api.get("/userdata", async (req, res) => {
     try {
         Project.aggregate([
+            {
+                $match: {
+                    deleteStatus: 0 // Only include projects that are not deleted
+                }
+            },
             { $unwind: "$task" },
             {
                 $group: {
@@ -48,16 +99,18 @@ api.get("/userdata", async (req, res) => {
                     tasks: {
                         $push: {
                             projectTitle: "$title",
+                            projectId:"$_id",
                             projectDescription: "$description",
                             taskTitle: "$task.title",
-                            taskDescription:"$task.description",
+                            taskDescription: "$task.description",
                             taskStage: "$task.stage",
                             taskId: "$task._id",
+                            taskCompletionDate:"$task.dateTime",
                             extensionRequest: "$task.extensionRequest",
                             remark: "$task.remark",
-                            deleteStatus:"$task.deleteStatus",
+                            deleteStatus: "$task.deleteStatus",
                             createdAt: "$task.created_at",
-                            deletedAt:"$task.deletedAt"
+                            deletedAt: "$task.deletedAt"
                         }
                     }
                 }
@@ -65,15 +118,17 @@ api.get("/userdata", async (req, res) => {
             {
                 $lookup: {
                     from: "users", // The name of the user collection
-                    localField: "_id",
-                    foreignField: "_id",
+                    let: { userId: "$_id" },
+                    pipeline: [
+                        { $match: { $expr: { $and: [{ $eq: ["$_id", "$$userId"] }, { $eq: ["$isDeactivated", false] }] } } }
+                    ],
                     as: "user"
                 }
             },
             {
                 $unwind: {
                     path: "$user",
-                    preserveNullAndEmptyArrays: true // Keep users with no matching documents in the user collection
+                    preserveNullAndEmptyArrays: false // Remove documents where the user is not found or deactivated
                 }
             },
             {
@@ -90,23 +145,26 @@ api.get("/userdata", async (req, res) => {
                     userid: "$_id",
                     username: "$user.name", // Adjust based on your User schema
                     useremail: "$user.email",
-                    projects: "$user.projects",// Adjust based on your User schema
+                    userProfile:"$user.profileImage",
+                    // projects: "$user.projects", // Adjust based on your User schema
                     tasks: {
                         $map: {
                             input: "$tasks",
                             as: "task",
                             in: {
                                 projectTitle: "$$task.projectTitle",
+                                projectId:"$$task.projectId",
                                 projectDescription: "$$task.projectDescription",
                                 taskId: "$$task._id",
                                 taskTitle: "$$task.taskTitle",
-                                taskDescription:"$$task.taskDescription",
+                                taskDescription: "$$task.taskDescription",
                                 taskStage: "$$task.taskStage",
+                                taskCompletionDate:"$$task.taskCompletionDate",
                                 extensionRequest: "$$task.extensionRequest",
                                 remark: "$$task.remark",
-                                deleteStatus:"$$task.deleteStatus",
+                                deleteStatus: "$$task.deleteStatus",
                                 createdAt: "$$task.createdAt",
-                                deletedAt:"$$task.deletedAt",
+                                deletedAt: "$$task.deletedAt",
                                 timelogs: {
                                     $filter: {
                                         input: "$timelogs",
@@ -124,13 +182,13 @@ api.get("/userdata", async (req, res) => {
                 res.send(result);
             })
             .catch(err => {
-                console.error(err);
                 res.status(500).send(err.message);
             });
     } catch (error) {
         res.status(500).send(error.message);
     }
 });
+
 
 
 
@@ -173,7 +231,6 @@ api.get('/project/:projectId/:userid', async (req, res) => {
 
         res.send(result);
     } catch (error) {
-        console.error('Error occurred during aggregation:', error);
         res.status(500).send({ error: true, message: 'An error occurred while fetching the project' });
     }
 });
@@ -182,10 +239,10 @@ api.get('/project/:projectId/:userid', async (req, res) => {
 api.post('/project', async (req, res) => {
     // validate type 
     const project = Joi.object({
-        title: Joi.string().trim().min(3).max(30).required().messages({
+        title: Joi.string().trim().min(3).max(255).required().messages({
             'string.empty': 'Title cannot be empty',
             'string.min': 'Title must be at least 3 characters long',
-            'string.max': 'Title cannot be longer than 30 characters',
+            'string.max': 'Title cannot be longer than 255 characters',
             'any.required': 'Title is required'
         }),
         description: Joi.string().trim().min(1).max(500).required().messages({
@@ -203,7 +260,6 @@ api.post('/project', async (req, res) => {
 
     // validation
     const { error, value } = project.validate({ title: req.body.title, description: req.body.description,dateTime: req.body.dateTime });
-    console.log(error, value);
     if (error) return res.status(422).send(error)
 
 
@@ -263,7 +319,6 @@ api.post('/assign-projects/:userId', async (req, res) => {
   
       res.status(200).json({ message: 'Projects assigned successfully', user });
     } catch (err) {
-      console.error('Error assigning projects:', err);
       res.status(500).json({ message: 'Server error' });
     }
   });
@@ -278,7 +333,7 @@ api.get('/projects', async (req, res) => {
       }
       res.status(200).json(user.projects);
     } catch (err) {
-      console.error('Error fetching projects:', err);
+      
       res.status(500).json({ message: 'Server error' });
     }
   });
@@ -302,7 +357,6 @@ api.get('/projects', async (req, res) => {
   
       res.json(projects);
     } catch (error) {
-      console.error('Error fetching projects:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
@@ -310,7 +364,6 @@ api.get('/projects', async (req, res) => {
   // Get assigned projects for a specific user
 api.get('/assigned-projects/:userId', async (req, res) => {
     const { userId } = req.params;
-    console.log('Received userId:', userId);
   
     try {
       // Fetch user and populate assigned projects
@@ -323,7 +376,6 @@ api.get('/assigned-projects/:userId', async (req, res) => {
       // Return the list of assigned projects
       res.json(user.projects);
     } catch (err) {
-      console.error(err);
       res.status(500).json({ message: 'Server error' });
     }
   });
@@ -333,7 +385,7 @@ api.get('/assigned-projects/:userId', async (req, res) => {
 api.put('/project/:id', async (req, res) => {
     // validate type 
     const project = Joi.object({
-        title: Joi.string().min(3).max(30).required(),
+        title: Joi.string().min(3).max(255).required(),
         description: Joi.string().required(),
     })
 
@@ -380,15 +432,15 @@ api.delete('/project/:id', async (req, res) => {
 //  task api   
 // Define Joi validation schema
 const taskSchema = Joi.object({
-    title: Joi.string().trim().min(3).max(50).required().messages({
+    title: Joi.string().trim().min(2).max(100).required().messages({
         'string.empty': 'Title cannot be empty',
-        'string.min': 'Title must be at least 3 characters long',
-        'string.max': 'Title cannot be longer than 30 characters',
+        'string.min': 'Title must be at least 2 characters long',
+        'string.max': 'Title cannot be longer than 100 characters',
         'any.required': 'Title is required'
     }),
-    description: Joi.string().trim().min(3).max(300).required().messages({
+    description: Joi.string().trim().min(2).max(500).required().messages({
         'string.empty': 'Description cannot be empty',
-        'string.min': 'Description must be at least 3 character long',
+        'string.min': 'Description must be at least 2 character long',
         'string.max': 'Description cannot be longer than 500 characters',
         'any.required': 'Description is required'
     }),
@@ -452,7 +504,7 @@ api.post('/project/:id/task', async (req, res) => {
 
         return res.send(updatedProject);
     } catch (error) {
-        console.error(error);
+        
         return res.status(500).send('Internal server error');
     }
 });
@@ -499,7 +551,7 @@ api.put('/project/:id/remark/:taskId', async (req, res) => {
     }
 
     const taskSchema = Joi.object({
-        remark: Joi.string().min(3).max(30).required()
+        remark: Joi.string().min(3).max(150).required()
     });
 
     const { error, value } = taskSchema.validate({ remark: req.body.remark });
@@ -508,9 +560,6 @@ api.put('/project/:id/remark/:taskId', async (req, res) => {
     }
 
     try {
-        console.log('Updating project:', req.params.id);
-        console.log('Updating task:', req.params.taskId);
-        console.log('New remark:', value.remark);
 
         // Update remark and set task stage to "Pause"
         const result = await Project.updateOne(
@@ -526,8 +575,6 @@ api.put('/project/:id/remark/:taskId', async (req, res) => {
             }
         );
 
-        console.log('Update result:', result);
-
         if (result.modifiedCount === 0) {
             return res.status(404).send('Task not found or remark not updated');
         }
@@ -542,9 +589,6 @@ api.put('/project/:id/remark/:taskId', async (req, res) => {
                 "task.$": 1
             }
         );
-
-        console.log('Updated task:', updatedProject.task[0]);
-
         const updatedTask = updatedProject.task[0];
         const remarkLog = new RemarkLog({
             userid: updatedTask.userid,
@@ -557,7 +601,6 @@ api.put('/project/:id/remark/:taskId', async (req, res) => {
 
         return res.send(updatedTask);
     } catch (error) {
-        console.error('Error updating task:', error);
         return res.status(500).send('Server error');
     }
 });
@@ -572,7 +615,6 @@ api.put('/project/:id/extensionRequest/:taskId', async (req, res) => {
     })
 
     const { error, value } = task.validate({ extensionRequest: req.body.extensionRequest });
-    console.log(error, value);
     if (error) return res.status(422).send(error)
 
     try {
@@ -593,8 +635,6 @@ api.put('/project/:id/extensionRequest/:taskId', async (req, res) => {
 api.put('/project/grantExtension/:taskId', async (req, res) => {
     const { taskId } = req.params;
     const { newDateTime } = req.body;
-
-    console.log(`Received taskId: ${taskId}, newDateTime: ${newDateTime}`);
 
     if (!taskId) {
         return res.status(500).send('Server error: Missing taskId');
@@ -651,7 +691,6 @@ api.put('/project/grantExtension/:taskId', async (req, res) => {
 
         return res.send({ message: 'Time extension granted successfully' });
     } catch (error) {
-        console.error('Error granting extension:', error);
         return res.status(500).send('Internal server error');
     }
 });
@@ -659,8 +698,6 @@ api.put('/project/grantExtension/:taskId', async (req, res) => {
 // Deny time extension request
 api.put('/project/denyExtension/:taskId', async (req, res) => {
     const { taskId } = req.params;
-
-    console.log(`Received taskId: ${taskId} for denial`);
 
     if (!taskId) {
         return res.status(500).send('Server error: Missing taskId');
@@ -689,7 +726,6 @@ api.put('/project/denyExtension/:taskId', async (req, res) => {
 
         return res.send({ message: 'Time extension denied successfully' });
     } catch (error) {
-        console.error('Error denying extension:', error);
         return res.status(500).send('Internal server error');
     }
 });
@@ -706,7 +742,6 @@ api.put('/project/:id/task/:taskId', async (req, res) => {
     })
 
     const { error, value } = task.validate({ title: req.body.title, description: req.body.description });
-    // console.log(error);
     
     if (error) return res.status(422).send(error)
 
@@ -715,7 +750,7 @@ api.put('/project/:id/task/:taskId', async (req, res) => {
             _id: mongoose.Types.ObjectId(req.params.id),
             task: { $elemMatch: { _id: mongoose.Types.ObjectId(req.params.taskId) } }
         }, { $set: { "task.$.title": value.title, "task.$.description": value.description } })
-        console.log("data:",data);
+
         const project = await Project.findById({_id: mongoose.Types.ObjectId(req.params.id)});
         return res.send(project)
     } catch (error) {

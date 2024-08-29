@@ -25,14 +25,6 @@ const ChangePassword = () => {
         toast.error("Passwords don't match");
         return;
       }
-
-      // Additional validation for password complexity (if needed)
-      const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-      if (!passwordRegex.test(newPassword)) {
-        toast.error("Password must be at least 8 characters long and contain both letters and numbers");
-        return;
-      }
-
       // Make API call to change password
       await axios.post(`${process.env.REACT_APP_BASE_URL}/api/user/change-password`, {
         email: localStorage.getItem('email'), // Example: Fetch email from local storage or state
@@ -45,17 +37,16 @@ const ChangePassword = () => {
       setTimeout(() => {
         navigate("/dashboard"); // Redirect to /dashboard after success
       }, 2000);
-      
+
     } catch (error) {
       toast.error(error.response?.data?.error || error.message);
     }
   };
-
   return (
     <>
-      {user?.role === "Admin" && <Dashboard showAdminHome={true} />} 
-      <div className="center">
-        <h1 className='fw-bold'>Change Password</h1>
+      {user?.role === "Admin" && <Dashboard showAdminHome={true} />}
+      <div className="center-changePassword">
+        <h1 className='fw-bold text-dark'>Change Password</h1>
         <form onSubmit={handleChangePassword}>
           {success && (
             <p className="success-message">
@@ -64,36 +55,39 @@ const ChangePassword = () => {
           )}
           <div className="txt_field">
             <input
+              style={{ color: "#000" }}
               type="password"
               // required
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
             />
             <span></span>
-            <label>Current Password</label>
+            <label style={{ color: "#000" }}>Current Password</label>
           </div>
           <div className="txt_field">
             <input
+              style={{ color: "#000" }}
               type="password"
               // required
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
             <span></span>
-            <label>New Password</label>
+            <label style={{ color: "#000" }}>New Password</label>
           </div>
           <div className="txt_field">
             <input
+              style={{ color: "#000" }}
               type="password"
               // required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
             <span></span>
-            <label>Confirm New Password</label>
+            <label style={{ color: "#000" }}>Confirm New Password</label>
           </div>
           <div className='d-flex gap-1 justify-content-between'>
-            <input className='mb-3 btn btn-danger cancel' onClick={() => navigate(-1)} type="submit" value="Cancel" />
+            <input style={{ color: "#000" }} className='mb-3 btn btn-danger cancel' onClick={() => navigate(-1)} value="Cancel" />
             <input className='mb-3' type="submit" value="Save Now" />
           </div>
         </form>

@@ -31,19 +31,35 @@ const ProjectModal = ({ isOpen, setIsOpen, id }) => {
         return `${days} days, ${hours} hours, and ${minutes} minutes remaining`;
     };
 
+    const getOrdinalSuffix = (day) => {
+        const j = day % 10;
+        const k = Math.floor(day / 10);
+        if (k === 1) return 'th';
+        if (j === 1) return 'st';
+        if (j === 2) return 'nd';
+        if (j === 3) return 'rd';
+        return 'th';
+    };
+
+    const formatDateWithOrdinal = (date) => {
+        const formattedDate = format(new Date(date), 'MMMM d, yyyy \'at\' h:mm:ss a');
+        const day = new Date(date).getDate();
+        return formattedDate.replace(/(\d+)/, `${day}${getOrdinalSuffix(day)}`);
+    };
+
     useEffect(() => {
         if (isOpen) {
             axios.get(`${process.env.REACT_APP_BASE_URL}/project/${id}`)
                 .then((data) => {
                     setProjectData(data.data.data);
-                    // console.log(projectData);
-                    // console.log(data.data);
                 })
                 .catch((error) => {
                     toast.error('Something went wrong');
                 });
         }
     }, [isOpen]);
+    console.log("--------->",projectData);
+    
 
     return (
         <Transition appear show={isOpen} as={Fragment}>
@@ -86,6 +102,10 @@ const ProjectModal = ({ isOpen, setIsOpen, id }) => {
                                         <div>
                                             <h3 className='text-base text-gray-600 font-medium mt-3 mb- font-semibold'>Completion Date and Time</h3>
                                             <p className='text-gray-600'>{projectData.dateTime ? formatDate(projectData.dateTime) : 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <h3 className='text-base text-gray-600 font-medium mt-3 mb-1 font-semibold'>Created Date & Time</h3>
+                                            <p>{projectData.createdAt ? formatDateWithOrdinal(projectData.createdAt) : 'N/A'}</p>
                                         </div>
                                         <div>
                                             <h3 className='text-base text-gray-600 font-medium mt-3 mb-2 font-semibold'>Remaining Time</h3>

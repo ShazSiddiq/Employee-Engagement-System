@@ -3,6 +3,9 @@ import axios from 'axios';
 import { ToastContainer } from 'react-toastify';
 import { Dialog, Transition } from '@headlessui/react';
 import AdminPopupInfo from '../components/AdminPopupInfo';
+import { format } from 'date-fns';
+import ProjectModal from './ProjectModel';
+import { useParams } from 'react-router-dom';
 
 export default function AdminHome() {
   const [data, setData] = useState([]);
@@ -13,18 +16,25 @@ export default function AdminHome() {
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedStage, setSelectedStage] = useState('');
   const [error, setError] = useState(null);
+  const [currentProjectId, setCurrentProjectId] = useState(null);
+  const [isProjectOpen, setProjectOpen] = useState(false);
+
+  const [showUserModal, setShowUserModal] = useState(false); // State for user modal
+  const [selectedUser, setSelectedUser] = useState(null); // State to store selected user details
   const POLLING_INTERVAL = 5000; // Poll every 5 seconds
+
+
+  // const { projectId } = useParams();
 
   const fetchData = async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/userdata`);
       const userData = response.data;
+// console.log(userData);
 
       // Filter out users with undefined usernames
       const validUserData = userData.filter(user => user.userid);
-      console.log(validUserData);
       
-
       // Filter out tasks that have deleteStatus set to 1
       validUserData.forEach(user => {
         user.tasks = user.tasks.filter(task =>!task.deleteStatus || task.deleteStatus !== 1);
@@ -33,6 +43,8 @@ export default function AdminHome() {
       // Sort userData by username to maintain a constant order
       const sortedUserData = validUserData.sort((a, b) => a.userid.localeCompare(b.userid));
       setData(sortedUserData);
+      console.log("sortedUserData:",sortedUserData);
+      
 
       // Extract unique project titles and sort them
       const titles = new Set();
@@ -42,6 +54,15 @@ export default function AdminHome() {
         });
       });
       setProjectTitles(Array.from(titles).sort());
+
+      const currentProjectId = new Set();
+      sortedUserData.forEach(user => {
+        user.tasks.forEach(task => {
+          currentProjectId.add(task.projectId);
+        });
+      });
+      setProjectTitles(Array.from(titles).sort());
+      setCurrentProjectId(Array.from(titles).sort());
 
       setLoading(false);
     } catch (error) {
@@ -54,14 +75,14 @@ export default function AdminHome() {
   useEffect(() => {
     let timeoutId;
 
-    const pollData = async () => {
-      await fetchData();
-      timeoutId = setTimeout(pollData, POLLING_INTERVAL);
-    };
+    // const pollData = async () => {
+       fetchData();
+    //   timeoutId = setTimeout(pollData, POLLING_INTERVAL);
+    // };
 
-    pollData(); // Start polling
+    // pollData(); // Start polling
 
-    return () => clearTimeout(timeoutId); // Cleanup timeout on unmount
+    // return () => clearTimeout(timeoutId); // Cleanup timeout on unmount
   }, []);
 
   const handleShowModal = (tasks, projectTitle, stage) => {
@@ -69,6 +90,8 @@ export default function AdminHome() {
 
     const tasksWithTimeSpent = filteredTasks.map(task => {
       const timeSpent = calculateTimeSpent(task.timelogs, task.taskStage);
+      console.log("timeSpent:",timeSpent);
+      
       return { ...task, timeSpent };
     });
 
@@ -78,26 +101,86 @@ export default function AdminHome() {
     setShowModal(true);
   };
 
+  const handleUserModal = (user) => {
+    setSelectedUser(user);
+    setShowUserModal(true);
+  };
+  // console.log(selectedUser);
+  const WORKING_HOURS = [
+    { day: 'Monday', startHour: 10, endHour: 18 },    // 10 AM - 6 PM
+    { day: 'Tuesday', startHour: 10, endHour: 18 },    // 9 AM - 5 PM
+    { day: 'Wednesday', startHour: 10, endHour: 18 }, // 11 AM - 7 PM
+    { day: 'Thursday', startHour: 10, endHour: 18 },  // 10 AM - 6 PM
+    { day: 'Friday', startHour: 10, endHour: 18 },     // 9 AM - 4 PM
+    { day: 'Saturday', startHour: 10, endHour: 18 },  // 10 AM - 2 PM
+    { day: 'Sunday', startHour: 0, endHour: 0 },      // Non-working day
+  ];
+  
+  
+  const getWorkingHoursForDay = (date) => {
+    const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+    return WORKING_HOURS.find(day => day.day === dayName);
+  };
+  const calculateWorkingHoursBetween = (start, end) => {
+    let totalWorkingHours = 0;
+    let current = new Date(start);
+  
+    while (current < end) {
+      const workingHours = getWorkingHoursForDay(current);
+      if (workingHours && workingHours.startHour < workingHours.endHour) {
+        const dayStart = new Date(current);
+        dayStart.setHours(workingHours.startHour, 0, 0, 0);
+        const dayEnd = new Date(current);
+        dayEnd.setHours(workingHours.endHour, 0, 0, 0);
+  
+        const workStart = current > dayStart ? current : dayStart;
+        const workEnd = end < dayEnd ? end : dayEnd;
+  
+        if (workStart < workEnd) {
+          totalWorkingHours += (workEnd - workStart);
+        }
+      }
+  
+      current.setDate(current.getDate() + 1);
+      current.setHours(0, 0, 0, 0);
+    }
+  
+    return totalWorkingHours;
+  };
+  
+  
   const calculateTimeSpent = (timelogs, taskStage) => {
     if (!timelogs || timelogs.length === 0) {
       return 0;
     }
-
+  
+    console.log({ timelogs, taskStage });
+  
     return timelogs.reduce((totalTime, log) => {
-      const startTime = new Date(log.startTime).getTime();
+      const startTime = new Date(log.startTime);
       let endTime;
-
+  
       if (log.endTime) {
-        endTime = new Date(log.endTime).getTime();
+        endTime = new Date(log.endTime);
       } else if (taskStage === 'Done') {
-        endTime = startTime;
+        endTime = startTime; // Handle case when task is marked as 'Done' without an end time
       } else {
-        endTime = new Date().getTime();
+        endTime = new Date(); // Use current time if not done
       }
-
-      return totalTime + (endTime - startTime);
+  
+      if (endTime < startTime) {
+        return totalTime;
+      }
+      console.log({
+        startTime, endTime
+      });
+      
+  console.log('calculateWorkingHoursBetween>>>>> ',parseInt(totalTime + calculateWorkingHoursBetween(startTime, endTime)));
+  
+      return parseInt(totalTime + calculateWorkingHoursBetween(startTime, endTime))
     }, 0);
   };
+  
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -105,10 +188,22 @@ export default function AdminHome() {
     setSelectedProject('');
     setSelectedStage('');
   };
+
+  const handleCloseUserModal = () => {
+    setShowUserModal(false);
+    setSelectedUser(null);
+  };
+
+  const handleProjectDetails = (currentProjectId) => {
+    setCurrentProjectId(currentProjectId);
+    setProjectOpen(true);
+};
+
+  
   
   const getColumnColor = (stage) => {
-    if (stage === 'In Progress') return 'bg-yellow-500'; // Column color for 'In Progress'
-    if (stage === 'Pause') return 'bg-red-600'; // Column color for 'Pause'
+    if (stage === 'In Progress') return 'bg-[#ffdf7c]'; // Column color for 'In Progress'
+    if (stage === 'Pause') return 'bg-[#e55e5e]'; // Column color for 'Pause'
     if (stage === 'Done') return 'bg-green-700'; // Column color for 'Done'
     return 'bg-white-500'; // Default color
   };
@@ -121,7 +216,24 @@ export default function AdminHome() {
     const seconds = totalSeconds % 60;
     return `${days} day ${hours}h ${minutes}m ${seconds}s`;
 };
+
+const getOrdinalSuffix = (day) => {
+  const j = day % 10;
+  const k = Math.floor(day / 10);
+  if (k === 1) return 'th';
+  if (j === 1) return 'st';
+  if (j === 2) return 'nd';
+  if (j === 3) return 'rd';
+  return 'th';
+};
+
+const formatDateWithOrdinal = (date) => {
+  const formattedDate = format(new Date(date), 'MMMM d, yyyy \'at\' h:mm:ss a');
+  const day = new Date(date).getDate();
+  return formattedDate.replace(/(\d+)/, `${day}${getOrdinalSuffix(day)}`);
+};
   
+  console.log("selectedUser:",selectedUser);
   
   
   if (error) return <p>Error: {error}</p>;
@@ -130,7 +242,7 @@ export default function AdminHome() {
   return (
     <>
       <div className='d-flex ml-2'>
-        <h1 className="mt-2 text-center fs-5 text-dark" style={{fontWeight:"500"}}>Employee Engagement</h1>
+        <h1 className="mt-2 text-center fs-5 text-dark" style={{fontWeight:"500"}}>Employee Engagement <span>({data.length})</span></h1>
         <AdminPopupInfo />
         <ToastContainer />
       </div>
@@ -147,7 +259,11 @@ export default function AdminHome() {
               <th className="sticky left-0 bg-gray-800 px-4 py-2 z-10" style={{ minWidth: '100px', fontWeight: "200" }}>Sr.No</th>
               <th className="sticky left-[100px] bg-gray-800 px-4 py-2 z-10" style={{ minWidth: '200px', fontWeight: "200" }}>Name</th>
               {projectTitles.map((title, index) => (
-                <th style={{ fontWeight: "200" ,minWidth: '350px'}} key={index}>{title}</th>
+                <th className='project-icon' style={{ fontWeight: "200" ,minWidth: '350px'}} key={index}>
+                  <span>{title.slice(0, 55)}
+                  {title.length > 55 && '...'} </span>
+                  <img onClick={() => handleProjectDetails(currentProjectId)} src='./image/file-circle-info-admin.svg' width="20px" alt="icon" className='cursor-pointer' title='View Project details' />
+                  </th>
               ))}
             </tr>
           </thead>
@@ -159,7 +275,13 @@ export default function AdminHome() {
             ) : data.map((user, userIndex) => (
               <tr key={user.userid} className="hover:bg-gray-100 text-dark">
                 <td className="sticky left-0 border px-4 py-2 bg-white" style={{ minWidth: '100px' }}>{userIndex + 1}</td>
-                <td className="sticky left-[100px] border px-4 py-2 bg-white" style={{ minWidth: '200px' }}>{user.username}</td>
+                <td
+                  className="sticky left-[100px] border px-4 py-2 bg-white cursor-pointer"
+                  style={{ minWidth: '200px' }}
+                  onClick={() => handleUserModal(user)} // Open user modal on name click
+                >
+                  {user.username}
+                </td>
                 {projectTitles.map((title, projectIndex) => {
                   const tasks = user.tasks.filter(task => task.projectTitle === title);
                   const inProgressTasks = tasks.filter(task => task.taskStage === 'In Progress');
@@ -177,7 +299,7 @@ export default function AdminHome() {
                     <td onClick={() => handleShowModal(tasks, title, stageTasks[0].taskStage)} className={`border cursor-pointer px-4 py-2 ${getColumnColor(stageTasks.length > 0 ? stageTasks[0].taskStage : 'default')}`} key={projectIndex} style={{ minWidth: '200px' }}>
                       {stageTasks.length > 0 && (
                         <button
-                          className={`text-light`}
+                          className={`text-dark`}
                         >
                           {displayText} 
                         </button>
@@ -218,7 +340,7 @@ export default function AdminHome() {
                 <Dialog.Panel className="rounded-md bg-white max-w-[65%] w-[55%]  ">
                   <Dialog.Title as='div' className="bg-white shadow px-6 py-4 rounded-t-md sticky top-0">
                     <div className="flex justify-between items-center">
-                      <h2 className='fs-5'>Tasks for {selectedProject}</h2>
+                      <h2 className='fs-5' style={{width:"98%"}}>Tasks for {selectedProject}</h2>
                     </div>
                     <button onClick={handleCloseModal} className='absolute right-6 top-4 text-gray-500 hover:bg-gray-100 rounded focus:outline-none focus:ring focus:ring-offset-1 focus:ring-gray-500/30 '>
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
@@ -233,10 +355,13 @@ export default function AdminHome() {
                       <ul className="space-y-4">
                         {selectedTasks.map((task, index) => (
                           <li key={index} className='text-dark'>
-                            <div><strong className='d-inline-block' style={{ width: "110px",marginBottom:"3px" }}>Title:</strong> {task.taskTitle}</div>
-                            <div style={{wordWrap:"break-word"}}><strong className='d-inline-block' style={{ width: "110px",marginBottom:"3px"}}>Description:</strong> {task.taskDescription}</div>
-                            <div><strong className='d-inline-block' style={{ width: "110px",marginBottom:"3px" }}>Stage:</strong> {task.taskStage}</div>
-                            <div><strong className='d-inline-block' style={{ width: "110px",marginBottom:"10px" }}>Time Spent:</strong> {formatTimeSpent(task.timeSpent)}</div>
+                            <div><strong className='d-inline-block' style={{ width: "210px",marginBottom:"3px" }}>Title:</strong> {task.taskTitle}</div>
+                            <div style={{wordWrap:"break-word"}}><strong className='d-inline-block' style={{ width: "210px",marginBottom:"3px"}}>Description:</strong> {task.taskDescription}</div>
+                            <div><strong className='d-inline-block' style={{ width: "210px",marginBottom:"3px" }}>Stage:</strong> {task.taskStage}</div>
+                            <div><strong className='d-inline-block' style={{ width: "210px",marginBottom:"3px" }}>Task CreationDate:</strong> {task.createdAt ? formatDateWithOrdinal(task.createdAt) : 'N/A' }</div>
+                            <div><strong className='d-inline-block' style={{ width: "210px",marginBottom:"3px" }}>Task CompletionDate:</strong> {task.taskCompletionDate ? formatDateWithOrdinal(task.taskCompletionDate) : 'N/A' }</div>
+                            {/* {taskData.created_at ? formatDateWithOrdinal(taskData.created_at) : 'N/A'} */}
+                            <div><strong className='d-inline-block' style={{ width: "210px",marginBottom:"10px" }}>Time Spent:</strong> {formatTimeSpent(task.timeSpent)}</div>
                             <hr className="my-4" />
                           </li>
                         ))}
@@ -249,6 +374,69 @@ export default function AdminHome() {
           </div>
         </Dialog>
       </Transition>
+       {/* User Details Modal */}
+       <Transition appear show={showUserModal} as={Fragment}>
+        <Dialog as="div" className="relative z-10" onClose={handleCloseUserModal}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                  <Dialog.Title
+                    as="h3"
+                    className="text-lg font-medium leading-6 text-gray-900"
+                  >
+                    User Details
+                  </Dialog.Title>
+                  <div className="mt-2">
+                    {selectedUser && (
+                      <>
+                        <img
+                          src={`${process.env.REACT_APP_BASE_URL}/profile-images/${selectedUser.userProfile}`}
+                          alt="User Profile"
+                          className="profile-image w-32 h-32 rounded-full mx-auto"
+                        />
+                        <p className="text-lg text-center mt-4">
+                          {selectedUser.username}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  <div className="mt-4">
+                    <button
+                      type="button"
+                      className="float-right inline-flex justify-center px-4 py-2 text-sm font-medium text-slate-100 bg-red-500 border border-transparent rounded-md hover:bg-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-600"
+                      onClick={handleCloseUserModal}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
+      <ProjectModal isOpen={isProjectOpen} setIsOpen={setProjectOpen} id={currentProjectId} />
     </>
   );
 }

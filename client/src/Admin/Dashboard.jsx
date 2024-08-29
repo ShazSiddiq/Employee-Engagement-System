@@ -30,32 +30,24 @@ export default function Dashboard({ showAdminHome = true }) {
 
   useEffect(() => {
     fetchExtensionRequestCount(); // Fetch on mount
-
     const intervalId = setInterval(fetchExtensionRequestCount, POLLING_INTERVAL);
-
     return () => clearInterval(intervalId); // Cleanup on unmount
   }, []);
 
   useEffect(() => {
+    const path = window.location.pathname.split('/dashboard').pop();
     const storedTab = localStorage.getItem('activeTab');
-    const path = window.location.pathname;
-    const tab = path.split('/dashboard').pop();
-  
-    // Priority to the URL path if present, otherwise fallback to localStorage
-    if (tab) {
-      setActiveTab(tab);
+
+    if (path === "" || path === "/") {
+      setActiveTab("admin-home");
     } else {
-      setActiveTab(storedTab || 'admin-home');
+      setActiveTab(path || storedTab || "admin-home");
     }
   }, []);
 
-  useEffect(() => {
-    if (activeTab) {
-      localStorage.setItem('activeTab', activeTab);
-    }
-  }, [activeTab]);
-
   const renderActiveTab = () => {
+    if (!activeTab) return null; // Render nothing until activeTab is set
+
     switch (activeTab) {
       case "admin-home":
         return <AdminHome />;
@@ -72,12 +64,13 @@ export default function Dashboard({ showAdminHome = true }) {
 
   const handleTabClick = (tab) => {
     setActiveTab(tab);
-    navigate(`/dashboard`);
+    localStorage.setItem('activeTab', tab);
+    navigate('/dashboard');
   };
 
   return (
-    <div className="flex">
-      <aside className="relative flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 h-[calc(100vh-2rem)] max-w-72 max-w-[20rem] p-1 shadow-xl shadow-blue-gray-900/5">
+    <div className="flex" style={{ paddingTop: "75px" }}>
+      <aside className="relative flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 h-[calc(100vh-0rem)] max-w-72 max-w-[20rem] p-1 shadow-xl shadow-blue-gray-900/5">
         <List>
           {showAdminHome && (
             <ListItem
@@ -131,7 +124,6 @@ export default function Dashboard({ showAdminHome = true }) {
             key="userlist"
             onClick={() => handleTabClick("userlist")}
             className={`cursor-pointer text-[14px] p-2 rounded-md ${activeTab === "userlist" ? "bg-slate-900 text-white" : "hover:bg-gray-100"}`}
-            
           >
             <ListItemPrefix>
               <UsersIcon className="h-5 w-5 mr-1" />

@@ -3,111 +3,194 @@
 @tailwind components;
 @tailwind utilities;
 
-
-.scroll::-webkit-scrollbar{
-    display: none;
+.header {
+  
+  padding-top: 100px;
 }
 
-.signup-form{
-    position: relative !important;
+.project-list {
+  position: fixed;
+  width:230px;
+  max-height: 79vh;
+  overflow: auto;
 }
-.signup-name{
-    position: absolute;
-    top: 0px;
-    left: 22px;
-    background-color: #fff;
+
+
+.scroll::-webkit-scrollbar {
+  display: none;
 }
-.signup-email{
-    position: absolute;
-    top: 0px;
-    left: 22px;
-    background-color: #fff;
+
+.signup-form {
+  position: relative !important;
 }
-.signup-password{
-    position: absolute;
-    top: 0px;
-    left: 22px;
-    background-color: #fff;
+
+.signup-name {
+  position: absolute;
+  top: 0px;
+  left: 22px;
+  background-color: #fff;
 }
+
+.signup-email {
+  position: absolute;
+  top: 0px;
+  left: 22px;
+  background-color: #fff;
+}
+
+.signup-password {
+  position: absolute;
+  top: 0px;
+  left: 22px;
+  background-color: #fff;
+}
+
 .required {
-    color: red;
-    margin-left: 4px; /* Optional: Add spacing between label text and asterisk */
-  }
-  .custom-tooltip[data-toggle="tooltip"]::after {
-    font-weight: bold;
+  color: red;
+  margin-left: 4px;
+  /* Optional: Add spacing between label text and asterisk */
 }
+
+.custom-tooltip[data-toggle="tooltip"]::after {
+  font-weight: bold;
+}
+
 .tooltip {
-    position: relative;
-    display: inline-block;
+  position: relative;
+  display: inline-block;
 }
 
 
 .tooltip .tooltiptext::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: #555 transparent transparent transparent;
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #555 transparent transparent transparent;
 }
 
 .tooltip:hover .tooltiptext {
-    visibility: visible;
-    opacity: 1;
+  visibility: visible;
+  opacity: 1;
 }
 
 /* PopupInfo.css */
 .custom-toast {
-    width: 500px; /* Set your desired width */
-    margin-right: 10px;
-  }
-  
-  .custom-toast-body {
-    font-size: 16px; /* Optional: adjust font size */
-    /* margin-right: 10px; */
-  }
-.dropdown-div{
-    cursor: pointer;
-    margin-bottom: 3px; 
-    border-radius: 3px; 
-    padding: 8px;
-    }
-.dropdown-div:nth-child(odd){
+  width: 500px;
+  /* Set your desired width */
+  margin-right: 10px;
+}
+
+.custom-toast-body {
+  font-size: 16px;
+  /* Optional: adjust font size */
+  /* margin-right: 10px; */
+}
+
+.dropdown-div {
+  cursor: pointer;
+  margin-bottom: 3px;
+  border-radius: 3px;
+  padding: 8px;
+}
+
+.dropdown-div:nth-child(odd) {
   background-color: #f2f2f2;
 }
-.dropdown-div:nth-child(even){
+
+.dropdown-div:nth-child(even) {
   background-color: #fff;
 }
-  .dropdown-div label input{
-    margin-right: 10px;
-    background-color: #ddd;
-    cursor: pointer;
-  }
-  .dropdown-div label{
-    cursor: pointer;
-    padding-left: 5px;
-    padding-top: 2px;
-  }
-  .dropdown-div:hover{
-    background-color: #eee;
-    cursor: pointer;
-  }
 
-  .table-wrapper::-webkit-scrollbar {
-    display: none;
-  }
-  
-  /* For Firefox */
-  .table-wrapper {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
-  }
-  .date-picker{
-    padding-right: 180px;
-  }
+.dropdown-div label input {
+  margin-right: 10px;
+  background-color: #ddd;
+  cursor: pointer;
+}
 
+.dropdown-div label {
+  cursor: pointer;
+  padding-left: 5px;
+  padding-top: 2px;
+}
 
-    
-    
+.dropdown-div:hover {
+  background-color: #eee;
+  cursor: pointer;
+}
+
+.table-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+/* For Firefox */
+.table-wrapper {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.date-picker {
+  padding-right: 180px;
+}
+
+.logout-tab {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: end !important;
+}
+
+.react-datepicker__month-dropdown,
+.react-datepicker__year-dropdown {
+  background-color: #f8fafc;
+  /* Tailwind's gray-50 */
+  border: 1px solid #e5e7eb;
+  /* Tailwind's gray-200 */
+  border-radius: 0.25rem;
+  /* Tailwind's rounded-md */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  /* Tailwind's shadow-sm */
+}
+
+.react-datepicker__month-option,
+.react-datepicker__year-option {
+  padding: 0.5rem 1rem;
+  /* Tailwind's px-4 py-2 */
+  cursor: pointer;
+}
+
+.react-datepicker__month-option:hover,
+.react-datepicker__year-option:hover {
+  background-color: #e5e7eb;
+  /* Tailwind's gray-200 */
+}
+
+.date-picker {
+  width: 100% !important;
+}
+
+@media (min-width: 1536px) {
+  .container {
+    max-width: 1720px;
+  }
+}
+
+@media (min-width: 1720px) {
+  .container {
+    max-width: 2720px;
+  }
+}
+
+.project-icon{
+  /* font-weight: 200;
+  min-width: 350px; */
+  /* display: flex; */
+  /* justify-content: center;
+  align-items: center;
+  gap: 5px;
+  line-height: 65px; */
+}

@@ -13,6 +13,7 @@ import Dashboard from "./Admin/Dashboard";
 import ProtectedRoute from "./context/ProtectedRoute"; // Import ProtectedRoute
 
 import Footer from "./components/Footer";
+import UserProfile from "./components/Profile";
 
 function App() {
   const { user } = useAuthContext();
@@ -34,6 +35,8 @@ function App() {
               <Route path="/:projectId" element={<Task />} />
               <Route path="/" element={<Home />} />
               <Route path="/change-password" element={<ChangePassword />} />
+              <Route path="/profile" element={<UserProfile />} />
+
             </Routes>
           </AppLayout>
         ) : (
@@ -47,11 +50,6 @@ function App() {
                 <Dashboard />
               </ProtectedRoute>
             } />
-            {/* <Route index element={<AdminHome />} />
-              <Route path="admin-home" element={<AdminHome />} />
-              <Route path="time-extension" element={<TimeExtension />} />
-              <Route path="projects" element={<ProjectList />} /> {/* Add this route */}
-              {/* <Route path="userlist" element={<UserList />} /> */} 
           </Routes>
         )}
         {/* <Footer/> */}

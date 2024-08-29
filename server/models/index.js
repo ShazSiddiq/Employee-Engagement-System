@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 const projectSchema = new mongoose.Schema({
     title: {
         type: String,
-        unique: true // must be unique
     },
     description: String,
     dateTime: {

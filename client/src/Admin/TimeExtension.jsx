@@ -4,6 +4,8 @@ import toast from 'react-hot-toast';
 import BtnPrimary from '../components/BtnPrimary';
 import ConfirmationModal from '../components/ConfirmationModal'; // Import the ConfirmationModal component
 import { Modal, Button } from 'react-bootstrap';
+import DatePicker from 'react-datepicker'; // Import the DatePicker component
+import 'react-datepicker/dist/react-datepicker.css'; // Import DatePicker styles
 
 export default function TimeExtension({ setExtensionRequestCount }) {
   const [users, setUsers] = useState([]);
@@ -12,7 +14,7 @@ export default function TimeExtension({ setExtensionRequestCount }) {
   const [selectedTask, setSelectedTask] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [originalOrder, setOriginalOrder] = useState([]);
-  const newDateTimeRef = useRef(null);
+  const [selectedDate, setSelectedDate] = useState(null); // State for DatePicker value
   const POLLING_INTERVAL = 5000; // Poll every 5 seconds
   const [showConfirmationModal, setShowConfirmationModal] = useState(false); // State for confirmation modal visibility
   const [denyTaskId, setDenyTaskId] = useState(null); // State for task ID being denied
@@ -56,7 +58,6 @@ export default function TimeExtension({ setExtensionRequestCount }) {
   }, [setExtensionRequestCount]);
 
   const handleGrantExtension = (taskId) => {
-    console.log('Granting extension for task:', taskId);
     const task = users.reduce((foundTask, user) => {
       if (foundTask) return foundTask;
       return user.tasks.find(task => task.timelogs.some(timelog => timelog.taskid === taskId));
@@ -66,20 +67,18 @@ export default function TimeExtension({ setExtensionRequestCount }) {
       toast.error('Task not found for taskId: ' + taskId);
       return;
     }
-
-    // console.log('Selected task:', task);
     setSelectedTask(task);
     setShowModal(true);
   };
 
   const handleSubmitExtension = () => {
-    if (!selectedTask) {
-      toast.error('No task selected');
+    if (!selectedTask || !selectedDate) {
+      toast.error('No task selected or date not set');
       return;
     }
 
     const taskId = selectedTask.timelogs[0].taskid;
-    const newDateTime = newDateTimeRef.current.value;
+    const newDateTime = selectedDate.toISOString();
 
     axios.put(`${process.env.REACT_APP_BASE_URL}/project/grantExtension/${taskId}`, { newDateTime })
       .then(response => {
@@ -130,8 +129,8 @@ export default function TimeExtension({ setExtensionRequestCount }) {
 
   return (
     <div>
-      <h1 className="mt-2 ml-2 mb-3 fs-5 text-dark" style={{fontWeight:"500"}}>Time Extension Requests</h1>
-      <hr className='mt-2 ml-2'/>
+      <h1 className="mt-2 ml-2 mb-3 fs-5 text-dark" style={{ fontWeight: "500" }}>Time Extension Requests <span>({users.length})</span></h1>
+      <hr className='mt-2 ml-2' />
       {sortedUsers.length === 0 ? (
         <div style={{ display: "flex", justifyContent: "center", height: "70vh" }}>
           <img src="./image/no_time_request.png" alt="No Time Requests" />
@@ -183,7 +182,15 @@ export default function TimeExtension({ setExtensionRequestCount }) {
         </Modal.Header>
         <Modal.Body>
           <label htmlFor="extensionDateTime" className="form-label">New Date and Time:</label>
-          <input type="datetime-local" id="extensionDateTime" className="form-control" required ref={newDateTimeRef} />
+          <DatePicker
+            selected={selectedDate}
+            onChange={(date) => setSelectedDate(date)}
+            dateFormat="dd/MM/yyyy h:mm aa"
+            showTimeSelect
+            timeIntervals={5}
+            placeholderText="Select new date and time"
+            className="form-control"
+          />
         </Modal.Body>
         <Modal.Footer>
           <Button className="inline-flex justify-center px-4 py-2 text-sm font-medium text-slate-100 bg-red-500 border border-transparent rounded-md hover:bg-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-600" onClick={() => setShowModal(false)}>Cancel</Button>

@@ -15,7 +15,27 @@ const TaskModal = ({ isOpen, setIsOpen, id }) => {
         return format(new Date(date), 'PPPpp');
     };
 
-    const calculateRemainingTime = (completionDateTime) => {
+    const getOrdinalSuffix = (day) => {
+        const j = day % 10;
+        const k = Math.floor(day / 10);
+        if (k === 1) return 'th';
+        if (j === 1) return 'st';
+        if (j === 2) return 'nd';
+        if (j === 3) return 'rd';
+        return 'th';
+    };
+
+    const formatDateWithOrdinal = (date) => {
+        const formattedDate = format(new Date(date), 'MMMM d, yyyy \'at\' h:mm:ss a');
+        const day = new Date(date).getDate();
+        return formattedDate.replace(/(\d+)/, `${day}${getOrdinalSuffix(day)}`);
+    };
+
+    const calculateRemainingTime = (completionDateTime, stage) => {
+        if (stage === 'Done' || stage === 'Archive') {
+            return <p className='text-green-600'>Task is completed</p>;
+        }
+
         const now = new Date();
         const completionDate = new Date(completionDateTime);
         const remainingTimeMs = differenceInMilliseconds(completionDate, now);
@@ -36,13 +56,14 @@ const TaskModal = ({ isOpen, setIsOpen, id }) => {
             axios.get(`${process.env.REACT_APP_BASE_URL}/project/${id.projectId}/task/${id.id}`)
                 .then((data) => {
                     setTaskData({ ...data.data[0].task[0] });
-                    // console.log(taskData);
                 })
                 .catch((error) => {
                     toast.error('Something went wrong');
                 });
         }
     }, [isOpen]);
+
+    console.log("taskData:", taskData);
 
     return (
         <Transition appear show={isOpen} as={Fragment}>
@@ -70,7 +91,7 @@ const TaskModal = ({ isOpen, setIsOpen, id }) => {
                             leaveTo="opacity-0 scale-95"
                         >
                             <Dialog.Panel className="rounded-md bg-white max-w-[75%] w-[55%] h-[65%] overflow-y-hidden">
-                                <Dialog.Title as='div' className={'bg-white shadow px-6 py-4 rounded-t-md sticky top-0'}>
+                                <Dialog.Title as='div' className={'bg-white shadow px-6 py-3 rounded-t-md sticky top-0'}>
                                     <h1>Task details</h1>
                                     <button onClick={() => setIsOpen(false)} className='absolute right-6 top-4 text-gray-500 hover:bg-gray-100 rounded focus:outline-none focus:ring focus:ring-offset-1 focus:ring-gray-500/30 '>
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
@@ -78,22 +99,27 @@ const TaskModal = ({ isOpen, setIsOpen, id }) => {
                                         </svg>
                                     </button>
                                 </Dialog.Title>
-                                <div className='flex gap-0' style={{height:"80%"}}>
-                                    <div className="w-12/12 px-8 space-y-3 py-4 min-h-max  overflow-y-auto">
+                                <div className='flex gap-0' style={{height:"90%"}}>
+                                    <div className="w-12/12 px-8 space-y-3 py-3 min-h-max  overflow-y-auto" style={{width:"100%"}}>
                                         <h1 className='text-3xl font-bold '>{capitalizeFirstLetter(taskData.title)}</h1>
                                         <p className='text-gray-600' style={{wordWrap:"break-word"}}>{capitalizeFirstLetter(taskData.description)}</p>
                                         <div>
-                                            <h3 className='text-base text-gray-600 font-medium mt-3 mb- font-semibold'>Completion Date and Time</h3>
+                                            <h3 className='text-base text-gray-600 font-medium mt-3 mb-1 font-semibold'>Task Stage</h3>
+                                            <p className='text-gray-600'>{taskData.stage}</p>
+                                        </div>
+                                        <div>
+                                            <h3 className='text-base text-gray-600 font-medium mt-3 mb-1 font-semibold'>Completion Date and Time</h3>
                                             <p className='text-gray-600'>{taskData.dateTime ? formatDate(taskData.dateTime) : 'N/A'}</p>
                                         </div>
                                         <div>
-                                            <h3 className='text-base text-gray-600 font-medium mt-3 mb-2 font-semibold'>Remaining Time</h3>
-                                            <p className='text-red-600'>{taskData.dateTime ? calculateRemainingTime(taskData.dateTime) : 'N/A'}</p>
+                                            <h3 className='text-base text-gray-600 font-medium mt-3 mb-1 font-semibold'>Task Created Date & Time</h3>
+                                            <p>{taskData.created_at ? formatDateWithOrdinal(taskData.created_at) : 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <h3 className='text-base text-gray-600 font-medium mt-3 mb-1 font-semibold'>Remaining Time</h3>
+                                            <p className='text-red-600'>{taskData.dateTime ? calculateRemainingTime(taskData.dateTime, taskData.stage) : 'N/A'}</p>
                                         </div>
                                     </div>
-                                    {/* <div className="w-4/12 py-4 pr-4">
-                                        
-                                    </div> */}
                                 </div>
                             </Dialog.Panel>
                         </Transition.Child>

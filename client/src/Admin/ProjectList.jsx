@@ -3,7 +3,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import AddProjectModal from './AddProjectModal';
 import BtnPrimary from '../components/BtnPrimary';
-import { Cog6ToothIcon, EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
+import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import ProjectModal from '../Admin/ProjectModel';
 import ConfirmationModal from '../components/ConfirmationModal';
 
@@ -76,7 +76,7 @@ const ProjectList = () => {
     return (
         <div className="container">
             <div className='d-flex justify-content-between'>
-                <span className='mt-1 fs-5' style={{fontWeight:"500"}}>Create Project</span>
+                <span className='mt-1 fs-5' style={{fontWeight:"500"}}>Project List <span>({projects.length})</span></span>
                 <BtnPrimary onClick={() => openModal(false)}>
                     Add Project
                 </BtnPrimary>
@@ -86,17 +86,19 @@ const ProjectList = () => {
                 {showDeleted ? 'Hide Deleted Projects' : 'Show Deleted Projects'}
             </button> */}
             <table className="table table-striped mt-3 table-hover" style={{ borderRadius: "8px", overflow: "hidden" }}>
-                <thead className='table-dark text-center'>
+                <thead className='table-dark'>
                     <tr>
                         <th scope="col" style={{ fontWeight: "200" }}>Project</th>
-                        <th scope="col" style={{ fontWeight: "200" }}>Actions</th>
+                        <th className='text-center' scope="col" style={{ fontWeight: "200" }}>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {projects.map((project) => (
                         <tr key={project._id}>
                             <td style={{ fontSize: "14px", fontWeight: "400" }}>
-                                {project.title}
+                                {/* {project.title} */}
+                                {project.title.slice(0, 75)}
+                                {project.title.length > 75 && '...'}
                             </td>
                             <td style={{ textAlign: "center" }}>
                                 <div className="btn-group gap-2">

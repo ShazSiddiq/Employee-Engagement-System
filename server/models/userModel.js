@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import Joi from 'joi';
 
+// Joi schemas for validation
 const signupSchema = Joi.object({
   name: Joi.string()
     .trim()
@@ -13,6 +14,17 @@ const signupSchema = Joi.object({
       'string.pattern.base': 'Name must contain at least one non-space character and cannot be only numbers.',
       'string.min': 'Name must be at least 3 characters long.',
       'string.max': 'Name cannot be more than 50 characters long.',
+    }),
+    phoneNumber: Joi.string()
+    .pattern(/^[0-9]+$/)
+    .min(10) // Minimum length for a mobile number (you can adjust this)
+    .max(15) // Maximum length for a mobile number (you can adjust this)
+    .required()
+    .messages({
+      'string.pattern.base': 'Phone number must contain only digits from 0 to 9.',
+      'string.min': 'Phone number must be at least 10 digits long.',
+      'string.max': 'Phone number must be at most 15 digits long.',
+      'string.empty': 'Phone number is required.',
     }),
   email: Joi.string().email().required().messages({
     'string.email': 'Email must be a valid email.',
@@ -33,12 +45,14 @@ const loginSchema = Joi.object({
 
 const changePasswordSchema = Joi.object({
   email: Joi.string().email().required(),
+  currentPassword: Joi.string().required(),
   newPassword: Joi.string().min(6).required(),
 });
 
 const deactivateUserSchema = Joi.object({
   userId: Joi.string().hex().length(24).required(),
 });
+
 const activateUserSchema = Joi.object({
   userId: Joi.string().hex().length(24).required(),
 });
@@ -49,10 +63,20 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  phoneNumber:{
+    type: String,
+    // required: true,
+  },
   email: {
     type: String,
     required: true,
     unique: true,
+  },
+  designation:{
+    type: String,
+  },
+  workingPlace:{
+    type: String,
   },
   profileImage: {
     type: String,
@@ -71,12 +95,15 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  activeTokens: [{ 
+    type: String,
+  }],  // Array to store active tokens
 });
 
 // Static method for user signup
-userSchema.statics.signup = async function (name, email, password, profileImage, role) {
+userSchema.statics.signup = async function (name,phoneNumber, email, password, profileImage, role) {
   // Validate input using Joi
-  const { error } = signupSchema.validate({ name, email, password ,profileImage});
+  const { error } = signupSchema.validate({ name,phoneNumber, email, password, profileImage });
   if (error) {
     throw new Error(error.details[0].message);
   }
@@ -90,7 +117,7 @@ userSchema.statics.signup = async function (name, email, password, profileImage,
   const salt = await bcrypt.genSalt(10);
   const hash = await bcrypt.hash(password, salt);
 
-  const user = await this.create({ name, email, password: hash, profileImage, role });
+  const user = await this.create({ name , phoneNumber, email, password: hash, profileImage, role });
 
   return user;
 };
@@ -122,10 +149,10 @@ userSchema.statics.login = async function (email, password) {
   return user;
 };
 
-// Static method for changing password
-userSchema.statics.changePassword = async function (email, newPassword) {
+// change password
+userSchema.statics.changePassword = async function (email, currentPassword, newPassword) {
   // Validate input using Joi
-  const { error } = changePasswordSchema.validate({ email, newPassword });
+  const { error } = changePasswordSchema.validate({ email, currentPassword, newPassword });
   if (error) {
     throw new Error(error.details[0].message);
   }
@@ -136,14 +163,23 @@ userSchema.statics.changePassword = async function (email, newPassword) {
     throw new Error('User not found');
   }
 
+  // Verify the current password
+  const isMatch = await bcrypt.compare(currentPassword, user.password);
+  if (!isMatch) {
+    throw new Error('Current password is incorrect');
+  }
+
+  // Hash the new password
   const salt = await bcrypt.genSalt(10);
   const hash = await bcrypt.hash(newPassword, salt);
 
+  // Update the password
   user.password = hash;
   await user.save();
 
   return user;
 };
+
 
 // Static method for deactivating a user
 userSchema.statics.deactivateUser = async function (userId) {
@@ -160,6 +196,7 @@ userSchema.statics.deactivateUser = async function (userId) {
   }
 
   user.isDeactivated = true;
+  user.activeTokens = [];  // Clear all active tokens
   await user.save();
 
   return user;

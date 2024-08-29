@@ -85,7 +85,7 @@ const ChangePasswordAdmin = () => {
           <span></span>
           <label>Confirm New Password</label>
         </div>
-        <input className='mb-3' type="submit" value="Change Password" />
+        <input className='mb-3 submit' type="submit" value="Change Password" />
       </form>
     </div>
   );

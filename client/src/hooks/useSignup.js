@@ -8,13 +8,13 @@ export const useSignup = () => {
   const { dispatch } = useAuthContext();
   const navigate = useNavigate(); // useNavigate hook for navigation
 
-  const signup = async (name, email, password, profileImage) => {
+  const signup = async (name,phoneNumber, email, password, profileImage) => {
     setLoading(true);
     setError(null);
 
-    console.log('Signup input values:', { name, email, password, profileImage });
+    console.log('Signup input values:', { name,phoneNumber, email, password, profileImage });
 
-    if (!name || !email || !password) {
+    if (!name || !phoneNumber || !email || !password) {
       setError("All fields are required");
       setLoading(false);
       return;
@@ -23,6 +23,7 @@ export const useSignup = () => {
     try {
       const formData = new FormData();
       formData.append('name', name);
+      formData.append('phoneNumber', phoneNumber);
       formData.append('email', email);
       formData.append('password', password);
 

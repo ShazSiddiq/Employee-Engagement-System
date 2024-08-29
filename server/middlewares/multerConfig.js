@@ -7,7 +7,7 @@ const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // Allow files up to 50MB
+  limits: { fileSize: 10 * 1024 * 1024 }, // Allow files up to 50MB
   fileFilter: (req, file, cb) => {
     // Define minimum and maximum file size in bytes
     const minFileSize = 200 * 1024; // 200KB
@@ -40,7 +40,7 @@ const compressAndSaveImage = async (req, res, next) => {
 
   try {
     // Check if file size is greater than 200 KB
-    const minFileSize = 200 * 1024; // 200KB
+    const minFileSize = 10 * 1024; // 200KB
     if (buffer.length > minFileSize) {
       // Compress the image if file size is greater than 200 KB
       await sharp(buffer)

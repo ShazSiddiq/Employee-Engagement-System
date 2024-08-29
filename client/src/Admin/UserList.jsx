@@ -2,7 +2,7 @@ import React, { useState, useEffect, Fragment } from 'react';
 import axios from 'axios';
 import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
-import { PencilIcon, UserMinusIcon, UserPlusIcon, EyeIcon } from '@heroicons/react/24/solid';
+import { PencilIcon, UserMinusIcon, UserPlusIcon, EyeIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/solid';
 import BtnPrimary from '../components/BtnPrimary';
 import ConfirmationModal from '../components/ConfirmationModal';
 
@@ -28,13 +28,14 @@ export default function UserList() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [originalOrder, setOriginalOrder] = useState([]);
   const [isDeactivating, setIsDeactivating] = useState(true);
+  const [profileImageModalOpen, setProfileImageModalOpen] = useState(false); // New state for profile image modal
+  const [selectedImageUrl, setSelectedImageUrl] = useState(''); // New state for selected image URL
   const POLLING_INTERVAL = 5000; // Poll every 5 seconds
 
   const fetchData = async () => {
     try {
       const userResponse = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/user/userlist`);
       const projectResponse = await axios.get(`${process.env.REACT_APP_BASE_URL}/projects`);
-      console.log("projectResponse:", projectResponse);
       const filteredProjects = projectResponse.data.filter(project => !project.deleteStatus || project.deleteStatus !== 1);
       const filteredUsers = userResponse.data.filter(user => user.role !== 'Admin');
 
@@ -45,7 +46,6 @@ export default function UserList() {
 
       setUsers(filteredUsers);
       setProjects(filteredProjects);
-      console.log(projects);
       setInitialLoading(false);
     } catch (err) {
       setError(err.message);
@@ -102,6 +102,7 @@ export default function UserList() {
         });
     }
   };
+  
 
   const openConfirmationModal = (userId, deactivating) => {
     setSelectedUserId(userId);
@@ -147,10 +148,20 @@ export default function UserList() {
         console.error('Error fetching assigned projects:', err);
       });
   };
+  
 
   const closeProjectModal = () => {
     setIsProjectModalOpen(false);
     setAssignedProjects([]);
+  };
+
+  const openProfileImageModal = (imageUrl) => {
+    setSelectedImageUrl(imageUrl);
+    setProfileImageModalOpen(true);
+  };
+  const closeProfileImageModal = () => {
+    setProfileImageModalOpen(false);
+    setSelectedImageUrl('');
   };
 
   const sortedUsers = users.sort((a, b) => originalOrder.indexOf(a.userid) - originalOrder.indexOf(b.userid));
@@ -159,8 +170,8 @@ export default function UserList() {
 
   return (
     <div className='ml-3'>
-      <h2 className='mb-3 fs-5' style={{fontWeight:"500"}}>Employee List</h2>
-      <hr className='mt-2'/>
+      <h2 className='mb-3 fs-5' style={{ fontWeight: "500" }}>Employee List <span>({users.length})</span></h2>
+      <hr className='mt-2' />
       <table className='table table-striped table-responsive table-hover mt-3' style={{ borderRadius: "8px", overflow: "hidden" }}>
         <thead className='table-dark'>
           <tr>
@@ -181,7 +192,8 @@ export default function UserList() {
                 <img
                   src={`${process.env.REACT_APP_BASE_URL}/profile-images/${user.profileImage}`}
                   alt="Profile"
-                  style={{ width: '50px', height: '50px', borderRadius: '50%' }}
+                  style={{ width: '50px', height: '50px', borderRadius: '50%',cursor: 'pointer' }}
+                  onClick={() => openProfileImageModal(`${process.env.REACT_APP_BASE_URL}/profile-images/${user.profileImage}`)}
                 />
               </td>
               <td>{user.isDeactivated ? 'Deactivated' : 'Active'}</td>
@@ -196,7 +208,7 @@ export default function UserList() {
 
               <td className=''>
                 <button className='btn btn-success' style={{ float: "left", marginRight: "5px" }} onClick={() => openAssignModal(user.userid)}>
-                  <PencilIcon
+                  <ClipboardDocumentListIcon
                     className="h-4 w-3 cursor-pointer"
                     title='Assign Project'
                   />
@@ -363,6 +375,33 @@ export default function UserList() {
                 </Dialog.Panel>
               </Transition.Child>
             </div>
+          </div>
+        </Dialog>
+      </Transition>
+      {/* Profile Image Modal */}
+      <Transition show={profileImageModalOpen} as={Fragment}>
+        <Dialog as="div" onClose={closeProfileImageModal}>
+          <Dialog.Overlay className="fixed inset-0 bg-black/30" />
+          <div className="fixed inset-0 flex items-center justify-center p-2">
+            <Dialog.Panel className="bg-white rounded p-4 max-w-md mx-auto">
+              <Dialog.Title className="text-lg font-semibold">Profile Image</Dialog.Title>
+              <div className="flex justify-center mt-4">
+                <img
+                  src={selectedImageUrl}
+                  alt="Profile"
+                  style={{ width: '100%', height: 'auto', maxHeight: '350px' }}
+                />
+              </div>
+              <div className="flex justify-end mt-3">
+                <button
+                  type="button"
+                  className=" inline-flex justify-center px-4 py-2 text-sm font-medium text-slate-100 bg-red-500 border border-transparent rounded-md hover:bg-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-red-600"
+                  onClick={closeProfileImageModal}
+                >
+                  Close
+                </button>
+              </div>
+            </Dialog.Panel>
           </div>
         </Dialog>
       </Transition>
