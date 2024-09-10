@@ -47,14 +47,14 @@ export default function TimeExtension({ setExtensionRequestCount }) {
   };
 
   useEffect(() => {
-    let timeoutId;
-    const pollData = async () => {
-      await fetchData();
-      timeoutId = setTimeout(pollData, POLLING_INTERVAL);
-    };
-    pollData(); // Start polling
+    // let timeoutId;
+    // const pollData = async () => {
+       fetchData();
+      // timeoutId = setTimeout(pollData, POLLING_INTERVAL);
+    // };
+    // pollData(); // Start polling
 
-    return () => clearTimeout(timeoutId); // Cleanup timeout on unmount
+    // return () => clearTimeout(timeoutId); // Cleanup timeout on unmount
   }, [setExtensionRequestCount]);
 
   const handleGrantExtension = (taskId) => {

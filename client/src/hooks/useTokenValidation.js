@@ -39,7 +39,7 @@ const useTokenValidation = () => {
     };
 
     checkTokenValidity();
-    const intervalId = setInterval(checkTokenValidity, 50000); // Check every 5 minutes
+    const intervalId = setInterval(checkTokenValidity, 100000); // Check every 5 minutes
 
     return () => clearInterval(intervalId);
   }, [navigate, user]);

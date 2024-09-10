@@ -5,12 +5,15 @@ import { Dialog, Transition } from '@headlessui/react';
 import AdminPopupInfo from '../components/AdminPopupInfo';
 import { format } from 'date-fns';
 import ProjectModal from './ProjectModel';
-import { useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { ClockIcon } from '@heroicons/react/24/solid';
 
 export default function AdminHome() {
   const [data, setData] = useState([]);
+  const [userId, setUserId] = useState(null)
   const [loading, setLoading] = useState(true);
   const [projectTitles, setProjectTitles] = useState([]);
+  const [projectDetails, setProjectDetails] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState([]);
   const [selectedProject, setSelectedProject] = useState('');
@@ -23,66 +26,62 @@ export default function AdminHome() {
   const [selectedUser, setSelectedUser] = useState(null); // State to store selected user details
   const POLLING_INTERVAL = 5000; // Poll every 5 seconds
 
+  const navigate = useNavigate();
 
-  // const { projectId } = useParams();
 
   const fetchData = async () => {
     try {
       const response = await axios.get(`${process.env.REACT_APP_BASE_URL}/userdata`);
       const userData = response.data;
-// console.log(userData);
 
-      // Filter out users with undefined usernames
       const validUserData = userData.filter(user => user.userid);
-      
-      // Filter out tasks that have deleteStatus set to 1
+
       validUserData.forEach(user => {
-        user.tasks = user.tasks.filter(task =>!task.deleteStatus || task.deleteStatus !== 1);
+        user.tasks = user.tasks.filter(task => !task.deleteStatus || task.deleteStatus !== 1);
       });
 
-      // Sort userData by username to maintain a constant order
       const sortedUserData = validUserData.sort((a, b) => a.userid.localeCompare(b.userid));
       setData(sortedUserData);
-      console.log("sortedUserData:",sortedUserData);
-      
+      setUserId(sortedUserData.userid)
 
-      // Extract unique project titles and sort them
-      const titles = new Set();
+      // Extract unique project titles and IDs and sort them
+      const projectDetail = [];
+
       sortedUserData.forEach(user => {
         user.tasks.forEach(task => {
-          titles.add(task.projectTitle);
+          if (!projectDetail.some(p => p.projectId === task.projectId)) {
+            projectDetail.push({ projectId: task.projectId, projectTitle: task.projectTitle });
+          }
         });
       });
-      setProjectTitles(Array.from(titles).sort());
 
-      const currentProjectId = new Set();
-      sortedUserData.forEach(user => {
-        user.tasks.forEach(task => {
-          currentProjectId.add(task.projectId);
-        });
-      });
-      setProjectTitles(Array.from(titles).sort());
-      setCurrentProjectId(Array.from(titles).sort());
-
+      setProjectDetails(projectDetail);
+      setProjectTitles(projectDetail.map(p => p.projectTitle));
+      setCurrentProjectId(projectDetail.map(p => p.projectId));
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching data:', error);
       setError(error.message);
       setLoading(false);
     }
   };
 
+  const handleProjectDetails = (projectId) => {
+    setCurrentProjectId(projectId);
+    setProjectOpen(true);
+  };
+
+
   useEffect(() => {
     let timeoutId;
 
-    // const pollData = async () => {
-       fetchData();
-    //   timeoutId = setTimeout(pollData, POLLING_INTERVAL);
-    // };
+    const pollData = async () => {
+      fetchData();
+      timeoutId = setTimeout(pollData, POLLING_INTERVAL);
+    };
 
-    // pollData(); // Start polling
+    pollData(); // Start polling
 
-    // return () => clearTimeout(timeoutId); // Cleanup timeout on unmount
+    return () => clearTimeout(timeoutId); // Cleanup timeout on unmount
   }, []);
 
   const handleShowModal = (tasks, projectTitle, stage) => {
@@ -90,8 +89,7 @@ export default function AdminHome() {
 
     const tasksWithTimeSpent = filteredTasks.map(task => {
       const timeSpent = calculateTimeSpent(task.timelogs, task.taskStage);
-      console.log("timeSpent:",timeSpent);
-      
+
       return { ...task, timeSpent };
     });
 
@@ -105,61 +103,61 @@ export default function AdminHome() {
     setSelectedUser(user);
     setShowUserModal(true);
   };
-  // console.log(selectedUser);
+
+  // Range of Working Hour
   const WORKING_HOURS = [
-    { day: 'Monday', startHour: 10, endHour: 18 },    // 10 AM - 6 PM
-    { day: 'Tuesday', startHour: 10, endHour: 18 },    // 9 AM - 5 PM
-    { day: 'Wednesday', startHour: 10, endHour: 18 }, // 11 AM - 7 PM
-    { day: 'Thursday', startHour: 10, endHour: 18 },  // 10 AM - 6 PM
-    { day: 'Friday', startHour: 10, endHour: 18 },     // 9 AM - 4 PM
-    { day: 'Saturday', startHour: 10, endHour: 18 },  // 10 AM - 2 PM
-    { day: 'Sunday', startHour: 0, endHour: 0 },      // Non-working day
+    { day: 'Monday', startHour: 10, endHour: 18 },   // 10 AM - 6 PM
+    { day: 'Tuesday', startHour: 10, endHour: 18 },  // 10 AM - 6 PM
+    { day: 'Wednesday', startHour: 10, endHour: 18 },// 10 AM - 6 PM
+    { day: 'Thursday', startHour: 10, endHour: 18 }, // 10 AM - 6 PM
+    { day: 'Friday', startHour: 10, endHour: 18 },   // 10 AM - 6 PM
+    { day: 'Saturday', startHour: 10, endHour: 18 }, // 10 AM - 6 PM
+    { day: 'Sunday', startHour: 0, endHour: 0 },     // Non-working day
   ];
-  
-  
+
   const getWorkingHoursForDay = (date) => {
     const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
     return WORKING_HOURS.find(day => day.day === dayName);
   };
+
   const calculateWorkingHoursBetween = (start, end) => {
     let totalWorkingHours = 0;
     let current = new Date(start);
-  
+
     while (current < end) {
       const workingHours = getWorkingHoursForDay(current);
+
       if (workingHours && workingHours.startHour < workingHours.endHour) {
         const dayStart = new Date(current);
-        dayStart.setHours(workingHours.startHour, 0, 0, 0);
+        dayStart.setHours(workingHours.startHour, 0, 0, 0); // Working start time for the day
         const dayEnd = new Date(current);
-        dayEnd.setHours(workingHours.endHour, 0, 0, 0);
-  
+        dayEnd.setHours(workingHours.endHour, 0, 0, 0); // Working end time for the day
+
         const workStart = current > dayStart ? current : dayStart;
         const workEnd = end < dayEnd ? end : dayEnd;
-  
+
+        // Calculate time spent within working hours
         if (workStart < workEnd) {
           totalWorkingHours += (workEnd - workStart);
         }
       }
-  
-      current.setDate(current.getDate() + 1);
-      current.setHours(0, 0, 0, 0);
+
+      current.setDate(current.getDate() + 1); // Move to the next day
+      current.setHours(0, 0, 0, 0); // Reset time for next day
     }
-  
-    return totalWorkingHours;
+
+    return totalWorkingHours  // Convert milliseconds to hours
   };
-  
-  
+
   const calculateTimeSpent = (timelogs, taskStage) => {
     if (!timelogs || timelogs.length === 0) {
       return 0;
     }
-  
-    console.log({ timelogs, taskStage });
-  
+
     return timelogs.reduce((totalTime, log) => {
       const startTime = new Date(log.startTime);
       let endTime;
-  
+
       if (log.endTime) {
         endTime = new Date(log.endTime);
       } else if (taskStage === 'Done') {
@@ -167,20 +165,21 @@ export default function AdminHome() {
       } else {
         endTime = new Date(); // Use current time if not done
       }
-  
+
       if (endTime < startTime) {
-        return totalTime;
+        return totalTime; // Ignore if end time is before start time
       }
+
+      // Log startTime and endTime for debugging
       console.log({
-        startTime, endTime
+        startTime,
+        endTime
       });
-      
-  console.log('calculateWorkingHoursBetween>>>>> ',parseInt(totalTime + calculateWorkingHoursBetween(startTime, endTime)));
-  
-      return parseInt(totalTime + calculateWorkingHoursBetween(startTime, endTime))
+
+      // Add the time difference calculated within working hours
+      return totalTime + calculateWorkingHoursBetween(startTime, endTime);
     }, 0);
   };
-  
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -194,20 +193,13 @@ export default function AdminHome() {
     setSelectedUser(null);
   };
 
-  const handleProjectDetails = (currentProjectId) => {
-    setCurrentProjectId(currentProjectId);
-    setProjectOpen(true);
-};
-
-  
-  
   const getColumnColor = (stage) => {
     if (stage === 'In Progress') return 'bg-[#ffdf7c]'; // Column color for 'In Progress'
     if (stage === 'Pause') return 'bg-[#e55e5e]'; // Column color for 'Pause'
     if (stage === 'Done') return 'bg-green-700'; // Column color for 'Done'
     return 'bg-white-500'; // Default color
   };
-  
+
   const formatTimeSpent = (milliseconds) => {
     const totalSeconds = Math.floor(milliseconds / 1000);
     const days = Math.floor(totalSeconds / (3600 * 24));
@@ -215,38 +207,38 @@ export default function AdminHome() {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
     return `${days} day ${hours}h ${minutes}m ${seconds}s`;
-};
+  };
 
-const getOrdinalSuffix = (day) => {
-  const j = day % 10;
-  const k = Math.floor(day / 10);
-  if (k === 1) return 'th';
-  if (j === 1) return 'st';
-  if (j === 2) return 'nd';
-  if (j === 3) return 'rd';
-  return 'th';
-};
+  const getOrdinalSuffix = (day) => {
+    const j = day % 10;
+    const k = Math.floor(day / 10);
+    if (k === 1) return 'th';
+    if (j === 1) return 'st';
+    if (j === 2) return 'nd';
+    if (j === 3) return 'rd';
+    return 'th';
+  };
 
-const formatDateWithOrdinal = (date) => {
-  const formattedDate = format(new Date(date), 'MMMM d, yyyy \'at\' h:mm:ss a');
-  const day = new Date(date).getDate();
-  return formattedDate.replace(/(\d+)/, `${day}${getOrdinalSuffix(day)}`);
-};
-  
-  console.log("selectedUser:",selectedUser);
-  
-  
+  const formatDateWithOrdinal = (date) => {
+    const formattedDate = format(new Date(date), 'MMMM d, yyyy \'at\' h:mm:ss a');
+    const day = new Date(date).getDate();
+    return formattedDate.replace(/(\d+)/, `${day}${getOrdinalSuffix(day)}`);
+  };
+
+  const UserProjectDetails = (userId) => {
+    setUserId(userId); // Set the current project ID
+    navigate('/admin-task-history', { state: { userId } });   // Navigate to the task history route and pass projectId
+  };
+
   if (error) return <p>Error: {error}</p>;
-  
-  
   return (
     <>
       <div className='d-flex ml-2'>
-        <h1 className="mt-2 text-center fs-5 text-dark" style={{fontWeight:"500"}}>Employee Engagement <span>({data.length})</span></h1>
+        <h1 className="mt-2 text-center fs-5 text-dark" style={{ fontWeight: "500" }}>Employee Engagement <span>({data.length})</span></h1>
         <AdminPopupInfo />
         <ToastContainer />
       </div>
-      <hr className='mt-2 ml-2'/>
+      <hr className='mt-2 ml-2' />
       {loading && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="text-white text-lg">Loading...</div>
@@ -258,12 +250,21 @@ const formatDateWithOrdinal = (date) => {
             <tr>
               <th className="sticky left-0 bg-gray-800 px-4 py-2 z-10" style={{ minWidth: '100px', fontWeight: "200" }}>Sr.No</th>
               <th className="sticky left-[100px] bg-gray-800 px-4 py-2 z-10" style={{ minWidth: '200px', fontWeight: "200" }}>Name</th>
-              {projectTitles.map((title, index) => (
-                <th className='project-icon' style={{ fontWeight: "200" ,minWidth: '350px'}} key={index}>
-                  <span>{title.slice(0, 55)}
-                  {title.length > 55 && '...'} </span>
-                  <img onClick={() => handleProjectDetails(currentProjectId)} src='./image/file-circle-info-admin.svg' width="20px" alt="icon" className='cursor-pointer' title='View Project details' />
-                  </th>
+              {projectDetails.map((title, index) => (
+                <th style={{ fontWeight: "200", minWidth: '250px' }} key={index}>
+                  <div className='project-icon'>
+                    <span style={{ width: "70%" }}>{title.projectTitle.slice(0, 30)}
+                      {title.projectTitle.length > 30 && '...'} </span>
+                    <img
+                      onClick={() => handleProjectDetails(title.projectId)}
+                      src='./image/file-circle-info-admin.svg'
+                      width="20px"
+                      alt="icon"
+                      className='cursor-pointer'
+                      title='View Project details'
+                    />
+                  </div>
+                </th>
               ))}
             </tr>
           </thead>
@@ -276,11 +277,15 @@ const formatDateWithOrdinal = (date) => {
               <tr key={user.userid} className="hover:bg-gray-100 text-dark">
                 <td className="sticky left-0 border px-4 py-2 bg-white" style={{ minWidth: '100px' }}>{userIndex + 1}</td>
                 <td
-                  className="sticky left-[100px] border px-4 py-2 bg-white cursor-pointer"
-                  style={{ minWidth: '200px' }}
+                  className="sticky left-[100px] border px-4 py-2 bg-white cursor-pointer flex gap-2 align-item"
                   onClick={() => handleUserModal(user)} // Open user modal on name click
                 >
-                  {user.username}
+                  <span>{user.username} </span><span><ClockIcon
+                    onClick={() => UserProjectDetails(user.userid)}
+                    className="h-7 w-7 cursor-pointer"
+                    title='View Project History'
+                    style={{ color: "#212250" }}
+                  /></span>
                 </td>
                 {projectTitles.map((title, projectIndex) => {
                   const tasks = user.tasks.filter(task => task.projectTitle === title);
@@ -288,9 +293,9 @@ const formatDateWithOrdinal = (date) => {
                   const pauseTasks = tasks.filter(task => task.taskStage === 'Pause');
                   const stageTasks = inProgressTasks.length > 0 ? inProgressTasks : pauseTasks;
                   const displayText = stageTasks.length > 1 ? (
-                    <>
-                      {stageTasks[0].taskTitle} <span style={{ color: 'blue',fontStyle:"italic" }}> +{stageTasks.length - 1} more</span>
-                    </>
+                    <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "200px" }}>
+                      {stageTasks[0].taskTitle} <span style={{ color: 'blue', fontStyle: "italic" }}> +{stageTasks.length - 1} more</span>
+                    </span>
                   ) : (
                     stageTasks[0]?.taskTitle
                   );
@@ -301,7 +306,7 @@ const formatDateWithOrdinal = (date) => {
                         <button
                           className={`text-dark`}
                         >
-                          {displayText} 
+                          {displayText}
                         </button>
                       )}
                     </td>
@@ -340,7 +345,7 @@ const formatDateWithOrdinal = (date) => {
                 <Dialog.Panel className="rounded-md bg-white max-w-[65%] w-[55%]  ">
                   <Dialog.Title as='div' className="bg-white shadow px-6 py-4 rounded-t-md sticky top-0">
                     <div className="flex justify-between items-center">
-                      <h2 className='fs-5' style={{width:"98%"}}>Tasks for {selectedProject}</h2>
+                      <h2 className='fs-5' style={{ width: "98%" }}>Tasks for {selectedProject}</h2>
                     </div>
                     <button onClick={handleCloseModal} className='absolute right-6 top-4 text-gray-500 hover:bg-gray-100 rounded focus:outline-none focus:ring focus:ring-offset-1 focus:ring-gray-500/30 '>
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
@@ -355,13 +360,13 @@ const formatDateWithOrdinal = (date) => {
                       <ul className="space-y-4">
                         {selectedTasks.map((task, index) => (
                           <li key={index} className='text-dark'>
-                            <div><strong className='d-inline-block' style={{ width: "210px",marginBottom:"3px" }}>Title:</strong> {task.taskTitle}</div>
-                            <div style={{wordWrap:"break-word"}}><strong className='d-inline-block' style={{ width: "210px",marginBottom:"3px"}}>Description:</strong> {task.taskDescription}</div>
-                            <div><strong className='d-inline-block' style={{ width: "210px",marginBottom:"3px" }}>Stage:</strong> {task.taskStage}</div>
-                            <div><strong className='d-inline-block' style={{ width: "210px",marginBottom:"3px" }}>Task CreationDate:</strong> {task.createdAt ? formatDateWithOrdinal(task.createdAt) : 'N/A' }</div>
-                            <div><strong className='d-inline-block' style={{ width: "210px",marginBottom:"3px" }}>Task CompletionDate:</strong> {task.taskCompletionDate ? formatDateWithOrdinal(task.taskCompletionDate) : 'N/A' }</div>
+                            <div><strong className='d-inline-block' style={{ width: "210px", marginBottom: "3px" }}>Title:</strong> {task.taskTitle}</div>
+                            <div style={{ wordWrap: "break-word" }}><strong className='d-inline-block' style={{ width: "210px", marginBottom: "3px" }}>Description:</strong> {task.taskDescription}</div>
+                            <div><strong className='d-inline-block' style={{ width: "210px", marginBottom: "3px" }}>Stage:</strong> {task.taskStage}</div>
+                            <div><strong className='d-inline-block' style={{ width: "210px", marginBottom: "3px" }}>Task CreationDate:</strong> {task.createdAt ? formatDateWithOrdinal(task.createdAt) : 'N/A'}</div>
+                            <div><strong className='d-inline-block' style={{ width: "210px", marginBottom: "3px" }}>Task CompletionDate:</strong> {task.taskCompletionDate ? formatDateWithOrdinal(task.taskCompletionDate) : 'N/A'}</div>
                             {/* {taskData.created_at ? formatDateWithOrdinal(taskData.created_at) : 'N/A'} */}
-                            <div><strong className='d-inline-block' style={{ width: "210px",marginBottom:"10px" }}>Time Spent:</strong> {formatTimeSpent(task.timeSpent)}</div>
+                            <div><strong className='d-inline-block' style={{ width: "210px", marginBottom: "10px" }}>Time Spent:</strong> {formatTimeSpent(task.timeSpent)}</div>
                             <hr className="my-4" />
                           </li>
                         ))}
@@ -374,8 +379,8 @@ const formatDateWithOrdinal = (date) => {
           </div>
         </Dialog>
       </Transition>
-       {/* User Details Modal */}
-       <Transition appear show={showUserModal} as={Fragment}>
+      {/* User Details Modal */}
+      <Transition appear show={showUserModal} as={Fragment}>
         <Dialog as="div" className="relative z-10" onClose={handleCloseUserModal}>
           <Transition.Child
             as={Fragment}
@@ -417,6 +422,9 @@ const formatDateWithOrdinal = (date) => {
                         />
                         <p className="text-lg text-center mt-4">
                           {selectedUser.username}
+                        </p>
+                        <p className="text-lg text-center mt-1">
+                          {selectedUser.useremail}
                         </p>
                       </>
                     )}

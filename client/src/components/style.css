@@ -199,11 +199,12 @@ form .txt_field {
 }
 .pass {
   margin: -5px 0 20px 5px;
-  color: #a6a6a6;
+  color: #cdc0c0;
   cursor: pointer;
 }
 .pass:hover {
-  text-decoration: underline;
+  text-decoration:none;
+  color: #fff;
 }
 .cancel{
   background: #ab1d29 !important;

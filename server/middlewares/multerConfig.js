@@ -40,7 +40,7 @@ const compressAndSaveImage = async (req, res, next) => {
 
   try {
     // Check if file size is greater than 200 KB
-    const minFileSize = 10 * 1024; // 200KB
+    const minFileSize = 1 * 1024; // 200KB
     if (buffer.length > minFileSize) {
       // Compress the image if file size is greater than 200 KB
       await sharp(buffer)

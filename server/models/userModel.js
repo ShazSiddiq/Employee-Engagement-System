@@ -98,6 +98,8 @@ const userSchema = new mongoose.Schema({
   activeTokens: [{ 
     type: String,
   }],  // Array to store active tokens
+  resetPasswordToken: { type: String }, // Token for password reset
+  resetPasswordExpires: { type: Date }, // Expiration time for reset token
 });
 
 // Static method for user signup

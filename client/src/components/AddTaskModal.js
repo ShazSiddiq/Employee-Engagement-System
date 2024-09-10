@@ -170,8 +170,10 @@ const AddTaskModal = ({ isAddTaskModalOpen, setAddTaskModal, projectId = null, t
                 setSelectedDate(null);
             })
             .catch((error) => {
+                console.log(error);
                 if (error.response && error.response.status === 422) {
                     error.response.data.forEach(errorMessage => toast.error(errorMessage));
+                    
                 } else {
                     toast.error('Something went wrong');
                 }

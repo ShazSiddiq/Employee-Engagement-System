@@ -88,7 +88,7 @@ const Login = () => {
 
           <div style={{position:"relative"}}>
           {password && (
-            <span className="password-icon" onClick={togglePasswordVisibility} style={{ transform: 'translateY(-50%)', cursor: 'pointer', position:"absolute", right:"5%", top:"43%", zIndex:"1" }}>
+            <span className="password-icon" onClick={togglePasswordVisibility} style={{ transform: 'translateY(-50%)', cursor: 'pointer', position:"absolute", right:"5%", top:"23%", zIndex:"1" }}>
               {showPassword ? (
                 <EyeIcon className="h-6 w-6 text-gray-500" />
               ) : (
@@ -110,6 +110,7 @@ const Login = () => {
             <label>Password <span className="required">*</span></label>
             {errors.password && <p className="error-message">{errors.password}</p>}
           </div>
+          <div className="pass"><Link to="/forgot-password" className="forget">Forgot Password?</Link> </div>
           </div>
 
           <input type="submit" value="Login" disabled={loading} />

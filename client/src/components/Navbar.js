@@ -19,7 +19,7 @@ const Navbar = () => {
     <div className='bg-[#212250] text-slate-100 position-fixed w-full z-[1]'>
       <div className="navbar container mx-auto h-20 flex items-center justify-between header" style={{ padding: "0 10px" }}>
         <Link to="/" className="logo text-2xl font-medium text-sky-400">
-          <img src='./image/mtye_logo.png' height="110px" width="110px" alt='logo' />
+          <img src='../image/mtye_logo.png' height="110px" width="110px" alt='logo' />
         </Link>
         <nav className="flex gap-5">
           {!user ? (

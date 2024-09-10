@@ -8,82 +8,164 @@ const { ObjectId } = mongoose.Types;
 import User from '../models/userModel.js';
 import RemarkLog from '../models/remarkLog.js';
 import WorkingHours from "../models/workingHours.js"
+import nodemailer from "nodemailer";
+import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 
 
 const api = express.Router()
 
-api.get("/workingHour",async(req,res)=>{
+const from = 'shahbaz.as@innobles.com'//process.env.MAILSENDER;
+
+const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    auth: {
+        user: from,
+        pass: 'acia qtcs bcdr foro'
+    }
+});
+
+// API for sending password reset link
+api.post("/forgot-password", async (req, res) => {
+    try {
+        const user = await User.findOne({ email: req.body.email.toLowerCase() });
+        if (!user) {
+            return res.status(404).send({ result: "Fail", message: "Invalid Email" });
+        }
+
+        // Generate a reset token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+        user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // Token expires in 10 minutes
+
+        await user.save();
+
+        // Create reset URL
+        // const resetUrl = `${req.protocol}://${req.get('host')}/reset-password/${resetToken}`;
+        const resetUrl = `https://myte.innobles.com/reset-password/${resetToken}`;
+
+        // Set up email options
+        const mailOptions = {
+            from: from,
+            to: user.email,
+            subject: "Password Reset: Team Myte",
+            text: `You requested a password reset. Please click on the link below to reset your password:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email.\n\nTeam: Myte\nDelhi`,
+        };
+        console.log(mailOptions);
+
+        // Send email
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.log(error);
+                return res.status(500).send({ result: "Fail", message: "Failed to send email. Please try again later." });
+            }
+            res.send({ result: "Done", message: "Password reset link sent to your registered Email ID!" });
+        });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({ result: "Fail", message: "Internal Server Error" });
+    }
+});
+
+// API to handle the password reset
+api.post("/reset-password/:token", async (req, res) => {
+    try {
+        const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+        const user = await User.findOne({
+            resetPasswordToken: hashedToken,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).send({ result: "Fail", message: "Token is invalid or has expired" });
+        }
+
+        // Update password
+        const salt = await bcrypt.genSalt(10);
+        const hash = await bcrypt.hash(req.body.password, salt);
+        user.password = hash; // Assign the hashed password to the user object
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+
+        await user.save();
+
+        res.send({ result: "Done", message: "Password reset successful" });
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({ result: "Fail", message: "Internal Server Error" });
+    }
+});
+
+// API endpoint to get timelog by taskid
+api.get('/timelogs/:taskid', async (req, res) => {
+    const { taskid } = req.params;
+
+    try {
+        // Convert taskid to ObjectId
+        const taskIdObjectId = mongoose.Types.ObjectId(taskid);
+
+        const timelog = await Timelog.find({ taskid: taskIdObjectId });
+
+        if (!timelog) {
+            return res.status(404).json({ message: 'Timelog not found' });
+        }
+
+        res.json(timelog);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+});
+
+api.get("/workingHour", async (req, res) => {
     try {
         const workingHours = await WorkingHours.find();
         res.send(workingHours)
     } catch (error) {
         console.log(error);
-        
+        res.status(500).json({ message: 'Server error', error });
     }
 })
-
 
 // Route to get working hours for a specific date
 api.get('/api/working-hours-by-date', async (req, res) => {
     const dateString = req.query.date;
-  
+
     // Validate date
     if (!dateString || isNaN(Date.parse(dateString))) {
-      return res.status(400).json({ message: 'Invalid date format' });
+        return res.status(400).json({ message: 'Invalid date format' });
     }
-  
+
     const date = new Date(dateString);
     const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-  
-    try {
-      // Fetch the document containing the working hours
-      const workingHoursDoc = await WorkingHours.findOne();
-  
-      if (!workingHoursDoc || !workingHoursDoc.workingHoursData) {
-        return res.status(404).json({ message: 'Working hours data not found' });
-      }
-  
-      // Find the working hours for the specific day
-      const workingHours = workingHoursDoc.workingHoursData.find(day => day.day === dayName);
-  
-      if (workingHours) {
-        res.json(workingHours);
-      } else {
-        res.status(404).json({ message: `No working hours found for ${dayName}` });
-      }
-    } catch (error) {
-      console.error('Error fetching working hours:', error);
-      res.status(500).json({ message: 'Server error' });
-    }
-  });
 
-api.post("/search", async (req, res) => {
     try {
-        let searchQuery = req.body.search;
+        // Fetch the document containing the working hours
+        const workingHoursDoc = await WorkingHours.findOne();
 
-        // Ensure searchQuery is a string
-        if (typeof searchQuery !== 'string') {
-            searchQuery = String(searchQuery);
+        if (!workingHoursDoc || !workingHoursDoc.workingHoursData) {
+            return res.status(404).json({ message: 'Working hours data not found' });
         }
 
-        // Perform the search query using Project model
-        const data = await Project.find({
-            $or: [
-                { title: { $regex: searchQuery, $options: "i" } },
-                { description: { $regex: searchQuery, $options: "i" } },
-                { 'tasks.title': { $regex: searchQuery, $options: "i" } }, // Search in nested tasks array
-                { 'tasks.description': { $regex: searchQuery, $options: "i" } } // Search in nested tasks array
-            ]
-        });
+        // Find the working hours for the specific day
+        const workingHours = workingHoursDoc.workingHoursData.find(day => day.day === dayName);
 
-        res.send({ result: "Done", data: data });
+        if (workingHours) {
+            res.json(workingHours);
+        } else {
+            res.status(404).json({ message: `No working hours found for ${dayName}` });
+        }
     } catch (error) {
-        res.status(500).send({ result: "Fail", message: "Internal server Error" });
+        console.error('Error fetching working hours:', error);
+        res.status(500).json({ message: 'Server error' });
     }
 });
 
-
-
+// fetch all user data
 api.get("/userdata", async (req, res) => {
     try {
         Project.aggregate([
@@ -99,13 +181,13 @@ api.get("/userdata", async (req, res) => {
                     tasks: {
                         $push: {
                             projectTitle: "$title",
-                            projectId:"$_id",
+                            projectId: "$_id",
                             projectDescription: "$description",
                             taskTitle: "$task.title",
                             taskDescription: "$task.description",
                             taskStage: "$task.stage",
                             taskId: "$task._id",
-                            taskCompletionDate:"$task.dateTime",
+                            taskCompletionDate: "$task.dateTime",
                             extensionRequest: "$task.extensionRequest",
                             remark: "$task.remark",
                             deleteStatus: "$task.deleteStatus",
@@ -145,7 +227,7 @@ api.get("/userdata", async (req, res) => {
                     userid: "$_id",
                     username: "$user.name", // Adjust based on your User schema
                     useremail: "$user.email",
-                    userProfile:"$user.profileImage",
+                    userProfile: "$user.profileImage",
                     // projects: "$user.projects", // Adjust based on your User schema
                     tasks: {
                         $map: {
@@ -153,13 +235,13 @@ api.get("/userdata", async (req, res) => {
                             as: "task",
                             in: {
                                 projectTitle: "$$task.projectTitle",
-                                projectId:"$$task.projectId",
+                                projectId: "$$task.projectId",
                                 projectDescription: "$$task.projectDescription",
                                 taskId: "$$task._id",
                                 taskTitle: "$$task.taskTitle",
                                 taskDescription: "$$task.taskDescription",
                                 taskStage: "$$task.taskStage",
-                                taskCompletionDate:"$$task.taskCompletionDate",
+                                taskCompletionDate: "$$task.taskCompletionDate",
                                 extensionRequest: "$$task.extensionRequest",
                                 remark: "$$task.remark",
                                 deleteStatus: "$$task.deleteStatus",
@@ -190,18 +272,18 @@ api.get("/userdata", async (req, res) => {
 });
 
 
-
-
+// fetch all project
 api.get('/projects', async (req, res) => {
     try {
         const data = await Project.find({}, { task: 0, __v: 0, updatedAt: 0 })
         return res.send(data)
-        
+
     } catch (error) {
         return res.send(error)
     }
 })
 
+// fetch task of project
 api.get('/project/:projectId/:userid', async (req, res) => {
     const { userid, projectId } = req.params;
 
@@ -228,9 +310,99 @@ api.get('/project/:projectId/:userid', async (req, res) => {
                 }
             }
         ]);
+console.log(result);
 
         res.send(result);
     } catch (error) {
+        res.status(500).send({ error: true, message: 'An error occurred while fetching the project' });
+    }
+});
+
+// fetch task of pegination and filtration of task of project
+api.get('/project-history/:projectId/:userid', async (req, res) => {
+    
+    const { userid, projectId } = req.params;
+    let { page = 1, limit = 10, search = '' } = req.query;
+
+    // Convert page and limit to integers and fallback to default values if invalid
+    page = parseInt(page, 10);
+    limit = parseInt(limit, 10);
+
+    if (isNaN(page) || page <= 0) page = 1;
+    if (isNaN(limit) || limit <= 0) limit = 10;
+
+    // Validate projectId and userid
+    if (!ObjectId.isValid(projectId) || !ObjectId.isValid(userid)) {
+        return res.status(400).send({ error: true, message: 'Invalid projectId or userid' });
+    }
+
+    try {
+        const projectIdObject = new ObjectId(projectId);
+        const userIdObject = new ObjectId(userid);
+
+        const result = await Project.aggregate([
+            { $match: { _id: projectIdObject } },
+            { $unwind: { path: "$task", preserveNullAndEmptyArrays: true } },  // Handle empty task array
+            {
+                $match: {
+                    ...(search && { "task.title": { $regex: search, $options: 'i' } }),  // Search tasks by title if provided
+                    $or: [
+                        { "task.userid": userIdObject },  // Match specific user's tasks
+                        { "task": { $exists: false } }  // Handle case where there are no tasks
+                    ]
+                }
+            },
+            {
+                $group: {
+                    _id: "$_id",
+                    title: { $first: "$title" },
+                    description: { $first: "$description" },
+                    tasks: { $push: "$task" }
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    title: 1,
+                    description: 1,
+                    tasks: { $filter: { input: "$tasks", as: "task", cond: { $ne: ["$$task", null] } } },  // Filter out null tasks
+                    totalTasks: { $size: { $filter: { input: "$tasks", as: "task", cond: { $ne: ["$$task", null] } } } }  // Count non-null tasks
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    title: 1,
+                    description: 1,
+                    tasks: { $slice: ["$tasks", (page - 1) * limit, limit] },  // Paginate tasks
+                    totalTasks: 1
+                }
+            }
+        ]);
+
+        // Check if the project was found
+        if (result.length === 0) {
+            return res.status(501).send({ error: true, message: 'Project not found' });
+        }
+
+        const project = result[0];
+
+        // If tasks are not found or empty, set totalTasks to 0 and return an empty task array
+        const response = {
+            _id: project._id,
+            title: project.title,
+            description: project.description,
+            tasks: project.tasks || [],  // Return empty array if no tasks
+            totalTasks: project.tasks.length > 0 ? project.totalTasks : 0,  // Return task count or 0 if no tasks
+            page,
+            limit
+        };
+
+        // Send the project response
+        res.send([response]);
+
+    } catch (error) {
+        console.error('Error fetching the project:', error);
         res.status(500).send({ error: true, message: 'An error occurred while fetching the project' });
     }
 });
@@ -259,14 +431,14 @@ api.post('/project', async (req, res) => {
     })
 
     // validation
-    const { error, value } = project.validate({ title: req.body.title, description: req.body.description,dateTime: req.body.dateTime });
+    const { error, value } = project.validate({ title: req.body.title, description: req.body.description, dateTime: req.body.dateTime });
     if (error) return res.status(422).send(error)
 
 
     // insert data 
     try {
         const data = await new Project(value).save()
-        res.send({ data: { title: data.title, description: data.description,dateTime: req.body.dateTime, updatedAt: data.updatedAt, _id: data._id } })
+        res.send({ data: { title: data.title, description: data.description, dateTime: req.body.dateTime, updatedAt: data.updatedAt, _id: data._id } })
 
     } catch (e) {
         if (e.code === 11000) {
@@ -292,7 +464,7 @@ api.get('/project/:id', async (req, res) => {
 
     try {
         const project = await Project.findById(req.params.id);
-        if (!project) return res.status(404).send({ error: true, message: 'Project not found' });
+        if (!project) return res.status(501).send({ error: true, message: 'Project not found' });
 
         res.send({ data: project });
     } catch (e) {
@@ -303,83 +475,125 @@ api.get('/project/:id', async (req, res) => {
 // assign project
 api.post('/assign-projects/:userId', async (req, res) => {
     try {
-      const { userId } = req.params;
-      const { projectIds } = req.body;
-  
-      // Find the user by ID and update the projects array
-      const user = await User.findByIdAndUpdate(
-        userId,
-        { $addToSet: { projects: { $each: projectIds } } }, // Use $addToSet to avoid duplicates
-        { new: true } // Return the updated document
-      );
-  
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-  
-      res.status(200).json({ message: 'Projects assigned successfully', user });
+        const { userId } = req.params;
+        const { projectIds } = req.body;
+
+        // Find the user by ID and update the projects array
+        const user = await User.findByIdAndUpdate(
+            userId,
+            { $addToSet: { projects: { $each: projectIds } } }, // Use $addToSet to avoid duplicates
+            { new: true } // Return the updated document
+        );
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.status(200).json({ message: 'Projects assigned successfully', user });
     } catch (err) {
-      res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error' });
     }
-  });
+});
 
 // Fetch projects assigned to a user
 api.get('/projects', async (req, res) => {
     try {
-      const { userid } = req.query;
-      const user = await User.findById(userid).populate('projects');
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-      res.status(200).json(user.projects);
+        const { userid } = req.query;
+        const user = await User.findById(userid).populate('projects');
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.status(200).json(user.projects);
     } catch (err) {
-      
-      res.status(500).json({ message: 'Server error' });
+
+        res.status(500).json({ message: 'Server error' });
     }
-  });
+});
 
 // get project assign by admin
-  api.get('/projects/:userId', async (req, res) => {
+api.get('/projects/:userId', async (req, res) => {
+    try {
+        const userId = req.params.userId;
+
+        // Find the user by userId
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Fetch projects that match the IDs in the user's `projects` array
+        const projects = await Project.find({
+            _id: { $in: user.projects }
+        });
+
+        res.json(projects);
+    } catch (error) {
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// project and task on bsis of userid
+api.get('/projects-history/:userId', async (req, res) => {
     try {
       const userId = req.params.userId;
   
       // Find the user by userId
       const user = await User.findById(userId);
-  
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
   
-      // Fetch projects that match the IDs in the user's `projects` array
+      // Fetch projects that match the IDs in the user's `projects` array and have deleteStatus = 0
       const projects = await Project.find({
-        _id: { $in: user.projects }
+        _id: { $in: user.projects },
+        deleteStatus: 0 // Ensure we only fetch projects where deleteStatus is 0
       });
   
-      res.json(projects);
+      // Convert userId to string for comparison if needed
+      const userIdString = mongoose.Types.ObjectId(userId).toString();
+  
+      // Filter tasks within each project based on the userId and deleteStatus = 0
+      const filteredProjects = projects.map(project => {
+        return {
+          ...project.toObject(), // Convert to plain JavaScript object
+          task: project.task.filter(task => 
+            task.userid.toString() === userIdString && task.deleteStatus === 0 // Ensure task has deleteStatus 0
+          )
+        };
+      });
+  
+      // Ensure each project has a tasks array (even if empty)
+      const projectsWithTasks = filteredProjects.map(project => ({
+        ...project,
+        task: project.task || [] // Default to empty array if task is undefined
+      }));
+  
+      res.json(projectsWithTasks);
     } catch (error) {
       res.status(500).json({ message: 'Internal server error' });
     }
   });
+  
 
-  // Get assigned projects for a specific user
+// Get assigned projects for a specific user
 api.get('/assigned-projects/:userId', async (req, res) => {
     const { userId } = req.params;
-  
-    try {
-      // Fetch user and populate assigned projects
-      const user = await User.findById(userId).populate('projects'); // Assuming 'projects' is a reference in User schema
-  
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-  
-      // Return the list of assigned projects
-      res.json(user.projects);
-    } catch (err) {
-      res.status(500).json({ message: 'Server error' });
-    }
-  });
 
+    try {
+        // Fetch user and populate assigned projects
+        const user = await User.findById(userId).populate('projects'); // Assuming 'projects' is a reference in User schema
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Return the list of assigned projects
+        res.json(user.projects);
+    } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 
 
 api.put('/project/:id', async (req, res) => {
@@ -387,10 +601,11 @@ api.put('/project/:id', async (req, res) => {
     const project = Joi.object({
         title: Joi.string().min(3).max(255).required(),
         description: Joi.string().required(),
+        dateTime: Joi.date().required()
     })
 
     // // validation
-    const { error, value } = project.validate({ title: req.body.title, description: req.body.description });
+    const { error, value } = project.validate({ title: req.body.title, description: req.body.description, dateTime: req.body.dateTime });
     if (error) return res.status(422).send(error)
 
     Project.updateOne({ _id: mongoose.Types.ObjectId(req.params.id) }, { ...value }, { upsert: true }, (error, data) => {
@@ -420,7 +635,7 @@ api.delete('/project/:id', async (req, res) => {
         );
 
         if (result.matchedCount === 0) {
-            return res.status(404).send({ message: 'Project not found' });
+            return res.status(501).send({ message: 'Project not found' });
         }
 
         res.send({ message: 'Project successfully marked as deleted' });
@@ -432,10 +647,10 @@ api.delete('/project/:id', async (req, res) => {
 //  task api   
 // Define Joi validation schema
 const taskSchema = Joi.object({
-    title: Joi.string().trim().min(2).max(100).required().messages({
+    title: Joi.string().trim().min(2).max(255).required().messages({
         'string.empty': 'Title cannot be empty',
         'string.min': 'Title must be at least 2 characters long',
-        'string.max': 'Title cannot be longer than 100 characters',
+        'string.max': 'Title cannot be longer than 250 characters',
         'any.required': 'Title is required'
     }),
     description: Joi.string().trim().min(2).max(500).required().messages({
@@ -451,7 +666,6 @@ const taskSchema = Joi.object({
         'any.required': 'Date-time is required'
     })
 });
-
 
 // Route handler for adding a task
 api.post('/project/:id/task', async (req, res) => {
@@ -473,7 +687,7 @@ api.post('/project/:id/task', async (req, res) => {
         }
 
         const project = await Project.findById(req.params.id);
-        if (!project) return res.status(404).send('Project not found');
+        if (!project) return res.status(501).send('Project not found');
 
         const taskIndex = project.task.length > 0 ? Math.max(...project.task.map(o => o.index)) + 1 : 0;
 
@@ -497,6 +711,7 @@ api.post('/project/:id/task', async (req, res) => {
         const newTimelog = new Timelog({
             taskid: newTaskId,
             projectid: req.params.id,
+            stage: newTask.stage, // Include stage in the timelog
             startTime: Date.now(),
         });
 
@@ -504,10 +719,10 @@ api.post('/project/:id/task', async (req, res) => {
 
         return res.send(updatedProject);
     } catch (error) {
-        
         return res.status(500).send('Internal server error');
     }
 });
+
 
 
 api.get('/project/:id/task/:taskId', async (req, res) => {
@@ -560,17 +775,16 @@ api.put('/project/:id/remark/:taskId', async (req, res) => {
     }
 
     try {
-
-        // Update remark and set task stage to "Pause"
+        // Step 1: Update remark and set task stage to "Pause"
         const result = await Project.updateOne(
             {
                 _id: mongoose.Types.ObjectId(req.params.id),
                 "task._id": mongoose.Types.ObjectId(req.params.taskId)
             },
             {
-                $set: { 
+                $set: {
                     "task.$.remark": value.remark,
-                    "task.$.stage": "Pause"  // Add this line to update the stage
+                    "task.$.stage": "Pause"
                 }
             }
         );
@@ -579,7 +793,7 @@ api.put('/project/:id/remark/:taskId', async (req, res) => {
             return res.status(404).send('Task not found or remark not updated');
         }
 
-        // Retrieve the updated task
+        // Step 2: Retrieve the updated task
         const updatedProject = await Project.findOne(
             {
                 _id: mongoose.Types.ObjectId(req.params.id),
@@ -590,6 +804,8 @@ api.put('/project/:id/remark/:taskId', async (req, res) => {
             }
         );
         const updatedTask = updatedProject.task[0];
+
+        // Step 3: Log the remark
         const remarkLog = new RemarkLog({
             userid: updatedTask.userid,
             taskid: req.params.taskId,
@@ -599,8 +815,35 @@ api.put('/project/:id/remark/:taskId', async (req, res) => {
 
         await remarkLog.save();
 
+        // Step 4: Update the last Timelog's endTime before creating a new one
+        const lastTimelog = await Timelog.findOneAndUpdate(
+            {
+                taskid: req.params.taskId,
+                projectid: req.params.id,
+                endTime: { $exists: false }
+            },
+            { endTime: Date.now() }, // Set the end time to now
+            { sort: { startTime: -1 }, new: true } // Get the latest and return the updated document
+        );
+
+        if (lastTimelog) {
+            console.log('Updated last Timelog with endTime:', lastTimelog);
+        } else {
+            console.log('No previous Timelog found to update');
+        }
+
+        // Step 5: Create a new Timelog entry
+        // const newTimelog = new Timelog({
+        //     taskid: req.params.taskId,
+        //     projectid: req.params.id,
+        //     startTime: Date.now(),
+        // });
+
+        // await newTimelog.save();
+
         return res.send(updatedTask);
     } catch (error) {
+        console.error('Error updating Timelog or task:', error);
         return res.status(500).send('Server error');
     }
 });
@@ -736,13 +979,13 @@ api.put('/project/:id/task/:taskId', async (req, res) => {
     if (!req.params.id || !req.params.taskId) return res.status(500).send(`server error`);
 
     const task = Joi.object({
-        title: Joi.string().min(3).max(30).required(),
+        title: Joi.string().min(3).max(255).required(),
         description: Joi.string().trim().min(3).max(500).required(),
-        dateTime:Joi.string().optional(),
+        dateTime: Joi.string().optional(),
     })
 
     const { error, value } = task.validate({ title: req.body.title, description: req.body.description });
-    
+
     if (error) return res.status(422).send(error)
 
     try {
@@ -751,7 +994,7 @@ api.put('/project/:id/task/:taskId', async (req, res) => {
             task: { $elemMatch: { _id: mongoose.Types.ObjectId(req.params.taskId) } }
         }, { $set: { "task.$.title": value.title, "task.$.description": value.description } })
 
-        const project = await Project.findById({_id: mongoose.Types.ObjectId(req.params.id)});
+        const project = await Project.findById({ _id: mongoose.Types.ObjectId(req.params.id) });
         return res.send(project)
     } catch (error) {
         return res.send(error)
@@ -783,28 +1026,35 @@ api.delete('/project/:id/task/:taskId', async (req, res) => {
 
 
 // Function to handle Timelog updates
-async function handleTimelogUpdate(task, projectId, previousStage) {
-    // Update the end time of the previous stage in Timelog
-    const updatedRes = await Timelog.findOneAndUpdate(
-        { taskid: task._id },
-        { endTime: Date.now() }
-    );
-    
-        // Determine start time for the new Timelog entry
-        let startTime = Date.now();
-        if (previousStage === undefined || previousStage === null) {
-            startTime = task.created_at;
-        }
-
-        // Create a new Timelog entry for the new stage
-        const newTimelog = new Timelog({
+async function handleTimelogUpdate(task, projectId, previousStage, newStage) {   
+    // Determine start time for the new Timelog entry
+    let startTime = Date.now();
+    if (previousStage === undefined || previousStage === null) {
+        startTime = task.created_at;
+    }
+// console.log("newStage>>>>>>",newStage);
+if(newStage=="Done"){
+    const lastTimelog = await Timelog.findOneAndUpdate(
+        {
             taskid: task._id,
             projectid: mongoose.Types.ObjectId(projectId),
-            startTime: startTime,
-        });
-        await newTimelog.save();
-    }
- 
+            endTime: { $exists: false }
+        },
+        { endTime: Date.now() }, // Set the end time to now
+        { sort: { startTime: -1 }, new: true } // Get the latest and return the updated document
+    );
+}
+    // Create a new Timelog entry for the new stage
+    const newTimelog = new Timelog({
+        taskid: task._id,
+        projectid: mongoose.Types.ObjectId(projectId),
+        stage: newStage,  // Include the new stage in the Timelog entry
+        startTime: startTime,
+    });
+    await newTimelog.save();
+}
+
+
 
 // API endpoint to update project todo list
 api.put('/project/:id/todo', async (req, res) => {
@@ -812,11 +1062,10 @@ api.put('/project/:id/todo', async (req, res) => {
         const projectId = mongoose.Types.ObjectId(req.params.id);
         const project = await Project.findById(projectId);
         if (!project) {
-            return res.status(404).send('Project not found');
+            return res.status(501).send('Project not found');
         }
 
         const bulkOps = [];
-        const timelogOps = [];
 
         for (const key in req.body) {
             for (const index in req.body[key].items) {
@@ -847,7 +1096,7 @@ api.put('/project/:id/todo', async (req, res) => {
                 });
 
                 if (previousStage !== newStage) {
-                    await handleTimelogUpdate(task, req.params.id, previousStage);
+                    await handleTimelogUpdate(task, req.params.id, previousStage, newStage);
                 }
             }
         }
@@ -856,15 +1105,14 @@ api.put('/project/:id/todo', async (req, res) => {
             await Project.bulkWrite(bulkOps);
         }
 
-        if (timelogOps.length > 0) {
-            await Timelog.bulkWrite(timelogOps);
-        }
-
         res.send('Tasks updated successfully');
     } catch (error) {
         res.status(500).send(error.message);
     }
 });
+
+
+
 
 
 export default api

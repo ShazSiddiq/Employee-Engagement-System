@@ -3,6 +3,7 @@ import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
 import { v4 as uuid } from 'uuid';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import { ClockIcon } from '@heroicons/react/24/solid';
 import 'react-tooltip/dist/react-tooltip.css';
 import BtnPrimary from './BtnPrimary';
 import DropdownMenu from './DropdownMenu';
@@ -14,7 +15,7 @@ import ConfirmationModal from './ConfirmationModal';
 import RequestExtensionModal from './RequestExtensionModal';
 import PopupInfo from './PopupInfo';
 import { ToastContainer } from 'react-toastify';
-import {  MagnifyingGlassIcon } from '@heroicons/react/24/solid';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/solid';
 import ProjectModal from '../Admin/ProjectModel';
 
 
@@ -39,6 +40,7 @@ function Task() {
     const [expiredTaskId, setExpiredTaskId] = useState(null);
     const [isRenderChange, setRenderChange] = useState(false);
     const [currentProjectId, setCurrentProjectId] = useState(null);
+    const [historyProjectId, setHistoryProjectId] = useState(null);
     const [isProjectOpen, setProjectOpen] = useState(false);
     const location = useLocation();
 
@@ -114,16 +116,19 @@ function Task() {
 
 
     const updateTodo = (data) => {
+        // const projectId = task.projectId; // Ensure you have the project ID
+
         axios
             .put(`${process.env.REACT_APP_BASE_URL}/project/${projectId}/todo`, data)
             .then((res) => {
-                
                 toast.success('Task updated successfully');
+
             })
             .catch((error) => {
                 toast.error('Something went wrong');
             });
     };
+
 
     const handleDelete = (e, taskId) => {
         // e.stopPropagation();
@@ -173,8 +178,6 @@ function Task() {
             });
     };
 
-
-
     const calculateRemainingTime = (dateTime, stage) => {
         if (['Done', 'Archive'].includes(stage)) {
             return { expired: false, timeString: 'Not applicable' };
@@ -216,6 +219,16 @@ function Task() {
             setTaskToMove({ task, source, destination });
             setConfirmationModalOpen(true);
             return;
+        }
+        // Decrement the count if the task is moved to the "Done" stage
+        if (destColumn.name === DONE_STAGE) {
+            const countElement = document.getElementById(`project-${projectId}-count`);
+
+            if (countElement) {
+                let currentCount = parseInt(countElement.textContent, 10);
+                currentCount = Math.max(0, currentCount - 1); // Ensure count doesn't go below 0
+                countElement.textContent = currentCount;
+            }
         }
         if (destColumn.name === ARCHIVE_STAGE && sourceColumn.name !== DONE_STAGE) {
             toast.error('Tasks can only be moved to Archive from Done stage.');
@@ -302,6 +315,7 @@ function Task() {
 
         updateTodo(data);
     };
+
     const handleOpenExtensionModal = (taskId) => {
         setExpiredTaskId(taskId);
         setExtensionModalOpen(true);
@@ -323,6 +337,12 @@ function Task() {
         setCurrentProjectId(projectId);
         setProjectOpen(true);
     };
+
+    const UserProjectDetails = (projectId) => {
+        setCurrentProjectId(projectId);  // Set the current project ID
+        navigate('/task-history', { state: { projectId } });   // Navigate to the task history route and pass projectId
+    };
+
     const isHomePage = location.pathname === '/';
 
     return (
@@ -346,15 +366,24 @@ function Task() {
                                 {title.length > 55 && '...'}
                             </span>
                             <img onClick={() => handleProjectDetails(projectId)} src='./image/file-circle-info.svg' width="20px" alt="icon" className='cursor-pointer' title='View Project details' />
+                            
                         </h1>
                     </div>
-                    <BtnPrimary onClick={() => setAddTaskModal(true)}>Add Task</BtnPrimary>
+                    <div className='d-flex gap-2 items-center'>
+                    <ClockIcon
+                            onClick={() => UserProjectDetails(projectId)}
+                                className="h-7 w-7 cursor-pointer"
+                                title='View Project details'
+                                style={{color:"#212250"}}
+                            />
+                        <BtnPrimary onClick={() => setAddTaskModal(true)}>Add Task</BtnPrimary>
+                    </div>
 
 
                 </div>
                 <form className="flex mt-2 relative" role="search">
-                <MagnifyingGlassIcon className="h-6 w-6 mt-1 text-gray-500 absolute " style={{right:"46px" ,top:"2px"}} />
-                    <input  className="form-control me-2 text-dark" type="search" placeholder="Search" aria-label="Search"  />
+                    <MagnifyingGlassIcon className="h-6 w-6 mt-1 text-gray-500 absolute " style={{ right: "46px", top: "2px" }} />
+                    <input className="form-control me-2 text-dark" type="search" placeholder="Search" aria-label="Search" />
                     <PopupInfo></PopupInfo>
                     <ToastContainer />
                 </form>
@@ -370,7 +399,7 @@ function Task() {
                 </div>
             ) : (
                 <DragDropContext onDragEnd={onDragEnd}>
-                    <div className="flex gap-5 scroll" style={{maxHeight:"60vh", overflow:"auto"}}>
+                    <div className="flex gap-5 scroll" style={{ maxHeight: "60vh", overflow: "auto" }}>
                         {Object.entries(columns).map(([columnId, column], index) => {
 
                             return (
@@ -496,6 +525,7 @@ function Task() {
             />
 
             <ProjectModal isOpen={isProjectOpen} setIsOpen={setProjectOpen} id={currentProjectId} />
+            {/* <UserTaskHistory id={projectId}/> */}
         </div>
     );
 }

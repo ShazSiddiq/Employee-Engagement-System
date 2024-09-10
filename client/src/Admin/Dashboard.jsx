@@ -39,11 +39,17 @@ export default function Dashboard({ showAdminHome = true }) {
     const storedTab = localStorage.getItem('activeTab');
 
     if (path === "" || path === "/") {
-      setActiveTab("admin-home");
+      if (storedTab) {
+        setActiveTab(storedTab);
+        navigate(`/dashboard`);
+      } else {
+        setActiveTab("admin-home");
+        navigate('/dashboard');
+      }
     } else {
-      setActiveTab(path || storedTab || "admin-home");
+      setActiveTab(path || "admin-home");
     }
-  }, []);
+  }, [navigate]);
 
   const renderActiveTab = () => {
     if (!activeTab) return null; // Render nothing until activeTab is set

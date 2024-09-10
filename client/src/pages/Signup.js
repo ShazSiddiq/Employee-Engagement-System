@@ -102,12 +102,15 @@ const Signup = () => {
         ...prevErrors,
         email: "Email must be in the format name@innobles.com.",
       }));
-    } else {
+    }else if (value.length > 50) {
+      setErrors(prevErrors => ({
+        ...prevErrors,
+        email: "email cannot exceed 50 characters."
+      }));
+    }else {
       setErrors((prevErrors) => ({ ...prevErrors, email: null }));
     }
   };
-  
-  
   
 
   const handlePhoneNumberChange = (e) => {
@@ -217,7 +220,8 @@ const Signup = () => {
   return (
     <>
       <div>
-        <img src="./image/mtye_bg_2.png" alt="" style={{ height: "100vh", width: "100%" }} />
+      <img src="./image/myte_bg_3.png" alt="" style={{ height: "100vh", width: "100%" }} />
+      <img src="./image/myte_bg_name.png" alt="" style={{ position: "absolute", top: "30%" }} />
       </div>
       <div className="center">
         <h1 ><b>Sign Up</b></h1>
@@ -252,7 +256,7 @@ const Signup = () => {
               placeholder="name@innobles.com"
             />
             <span></span>
-            <label>Email <span className="required">*</span></label>
+            <label>Email Address <span className="required">*</span></label>
             {errors.email && <p className="error-message">{errors.email}</p>}
           </div>
           <div className={`txt_field ${errors.password ? 'error' : ''}`}>
@@ -272,11 +276,12 @@ const Signup = () => {
             </label>
             <div onClick={() => document.getElementById('fileInput').click()} className="flex flex-col space-y-2 items-center justify-center uplode-img-profile cursor-pointer">
               <i className="fas fa-cloud-upload-alt fa-3x text-currentColor"></i>
-              <p className="text-[#f9eaea8f] m-0 text-[12px]">{profileImage ? profileImage.name : 'Drag your files here or click in this area.'}</p>
+              <p className="text-[#f9eaea8f] m-0 break-all text-[12px]">{profileImage ? profileImage.name : 'Drag your files here or click in this area.'}</p>
               <a className="flex items-center py-1 px-2 text-white text-center text-[12px] border border-transparent rounded-md outline-none bg-[#2691d9]">Select a file</a>
             </div>
             <input type="file" id="fileInput" style={{ display: 'none' }} onChange={handleFileChange} />
-            <p className="mt-1 text-sm text-gray-400 dark:text-gray-300" id="file_input_help">Only PNG, JPG are Allowed.</p>
+            <p className="mt-1 text-sm text-gray-400 dark:text-gray-300" id="file_input_help">Please upload an image in JPG or PNG format Only, with a file size between 10KB and 10MB.
+            .</p>
             {errors.profileImage && <p className="error-message">{errors.profileImage}</p>}
           </div>
           <input type="submit" value="Sign Up" disabled={loading} required />

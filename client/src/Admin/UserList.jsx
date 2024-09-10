@@ -2,9 +2,10 @@ import React, { useState, useEffect, Fragment } from 'react';
 import axios from 'axios';
 import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
-import { PencilIcon, UserMinusIcon, UserPlusIcon, EyeIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/solid';
+import { PencilIcon, UserMinusIcon, UserPlusIcon, EyeIcon, ClipboardDocumentListIcon, ClockIcon } from '@heroicons/react/24/solid';
 import BtnPrimary from '../components/BtnPrimary';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { useNavigate } from 'react-router-dom';
 
 const scrollableContainerStyles = {
   maxHeight: '300px',
@@ -31,6 +32,8 @@ export default function UserList() {
   const [profileImageModalOpen, setProfileImageModalOpen] = useState(false); // New state for profile image modal
   const [selectedImageUrl, setSelectedImageUrl] = useState(''); // New state for selected image URL
   const POLLING_INTERVAL = 5000; // Poll every 5 seconds
+
+  const navigate = useNavigate();
 
   const fetchData = async () => {
     try {
@@ -166,6 +169,11 @@ export default function UserList() {
 
   const sortedUsers = users.sort((a, b) => originalOrder.indexOf(a.userid) - originalOrder.indexOf(b.userid));
 
+  const UserProjectDetails = (userId) => {
+    setSelectedUserId(userId); // Set the current project ID
+    navigate('/admin-task-history', { state: { userId } });   // Navigate to the task history route and pass projectId
+};
+
   if (error) return <p>Error: {error}</p>;
 
   return (
@@ -197,12 +205,20 @@ export default function UserList() {
                 />
               </td>
               <td>{user.isDeactivated ? 'Deactivated' : 'Active'}</td>
-              <td style={{ textAlign: "center" }}>
+              <td style={{ textAlign: "center"  }}>
                 <button
+                style={{ float: "left", marginRight: "5px" }}
                   className='btn btn-info text-white'
                   onClick={() => openProjectModal(user.userid)}
                 >
-                  <EyeIcon className="h-4 w-4" style={{ textAlign: "center" }} title='View Assigned Projects' />
+                  <EyeIcon className="h-4 w-4"  title='View Assigned Projects' />
+                </button>
+                <button
+                  className='btn btn-info text-white'
+                  onClick={() => UserProjectDetails(user.userid)}
+                  style={{ float: "left" }}
+                >
+                  <ClockIcon className="h-4 w-4" style={{ textAlign: "center"}} title='View User History' />
                 </button>
               </td>
 
@@ -261,7 +277,7 @@ export default function UserList() {
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <Dialog.Panel className="rounded-md bg-white max-w-md w-full overflow-y-hidden">
+                <Dialog.Panel className="rounded-md bg-white max-w-lg w-full overflow-y-hidden">
                   <Dialog.Title as='div' className='bg-white shadow px-6 py-4 rounded-t-md sticky top-0'>
                     <h1 className='fs-5'>Assign Projects</h1>
                     <button onClick={closeAssignModal} className='absolute right-6 top-4 text-gray-500 hover:bg-gray-100 rounded focus:outline-none focus:ring focus:ring-offset-1 focus:ring-gray-500/30'>
@@ -315,7 +331,6 @@ export default function UserList() {
         message={`Are you sure you want to ${isDeactivating ? 'deactivate' : 'activate'} this user?`}
       />
 
-      {/* Project Modal */}
       {/* Assigned Projects Modal */}
       <Transition appear show={isProjectModalOpen} as={Fragment}>
         <Dialog as="div" open={isProjectModalOpen} onClose={closeProjectModal} className="relative z-50">
@@ -341,7 +356,7 @@ export default function UserList() {
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <Dialog.Panel className="rounded-md bg-white max-w-md w-full overflow-y-hidden">
+                <Dialog.Panel className="rounded-md bg-white max-w-lg w-full overflow-y-hidden">
                   <Dialog.Title as='div' className='bg-white shadow px-6 py-4 rounded-t-md sticky top-0'>
                     <h1 className='fs-5'>Assigned Projects</h1>
                     <button onClick={closeProjectModal} className='absolute right-6 top-4 text-gray-500 hover:bg-gray-100 rounded focus:outline-none focus:ring focus:ring-offset-1 focus:ring-gray-500/30'>

@@ -188,9 +188,10 @@
 .project-icon{
   /* font-weight: 200;
   min-width: 350px; */
-  /* display: flex; */
-  /* justify-content: center;
+  display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 5px;
-  line-height: 65px; */
+  gap: 10px;
+  /* gap: 5px;
+  line-height: 65px; */ 
 }

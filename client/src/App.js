@@ -14,11 +14,16 @@ import ProtectedRoute from "./context/ProtectedRoute"; // Import ProtectedRoute
 
 import Footer from "./components/Footer";
 import UserProfile from "./components/Profile";
+import ForgetPassword from "./pages/ForgetPass";
+import ResetPassword from "./pages/ResetPassword";
+import UserTaskHistory from "./components/UserTaskHistory";
+import TaskHistoryAdmin from "./Admin/TaskHistoryAdmin";
+import AdminTaskDetails from "./Admin/TaskDetailsAdmin";
 
 function App() {
   const { user } = useAuthContext();
   const location = useLocation();
-  const noLayoutPaths = ["/login", "/signup", "/dashboard",];
+  const noLayoutPaths = ["/login", "/signup", "/dashboard","/admin-task-history","/admin-task-details"];
   const isLayoutNeeded = !noLayoutPaths.includes(location.pathname);
 
   // Determine if AppLayout is needed based on user role
@@ -36,6 +41,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/change-password" element={<ChangePassword />} />
               <Route path="/profile" element={<UserProfile />} />
+              <Route path="/task-history" element={<UserTaskHistory />} />
 
             </Routes>
           </AppLayout>
@@ -44,6 +50,11 @@ function App() {
             <Route path="/" element={user ? <Navigate to={user.role === "Admin" ? "/dashboard" : "/"} /> : <Login />} />
             <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
             <Route path="/signup" element={!user ? <Signup /> : <Navigate to="/" />} />
+            <Route path="/forgot-password" element={<ForgetPassword/>}/>
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
+            <Route path="/task-history" element={<UserTaskHistory />} />
+            <Route path="/admin-task-history" element={<TaskHistoryAdmin />} />
+            <Route path="/admin-task-details" element={<AdminTaskDetails />} />
             <Route path="/change-password" element={user?.role === "Admin" ? <ChangePassword/> : <Navigate to="/change-password" />} />
             <Route path="/dashboard" element={
               <ProtectedRoute role="Admin">
@@ -52,7 +63,6 @@ function App() {
             } />
           </Routes>
         )}
-        {/* <Footer/> */}
       </div>
     </>
   );
